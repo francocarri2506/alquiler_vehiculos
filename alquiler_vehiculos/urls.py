@@ -15,8 +15,21 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path,include
+
+#from apps.alquiler.api.v1.apiview import VehiculoListCreateAPIView, VehiculoRetrieveUpdateDestroyAPIView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+   # path('api/<str:version>/', include('apps.alquiler.api.urls')),
+    path('api/v1/', include('apps.alquiler.api.v1.urls')),
+    #path('api/v2/', include('apps.alquiler.api.v2.urls')),#copia exacta de v1 solo con viewset
+
+
+    #apiview
+   # path("vehiculos/", VehiculoListCreateAPIView.as_view(), name="vehiculo-list-create"),
+   # path("vehiculos/<uuid:pk>/", VehiculoRetrieveUpdateDestroyAPIView.as_view(), name="vehiculo-detail"),
+
 ]
+
+
