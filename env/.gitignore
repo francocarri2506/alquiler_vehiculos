@@ -1,0 +1,18 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+
+
+# Ignorar entorno virtual
+env/
+
+# Ignorar configuraciones de PyCharm
+.idea/
+
+# Ignorar cachés de Python
+__pycache__/
+*.py[cod]
+
+# Ignorar archivos de entorno
+.env
+
+# Archivos de base de datos temporales (si usás SQLite por ejemplo)
+*.sqlite3
