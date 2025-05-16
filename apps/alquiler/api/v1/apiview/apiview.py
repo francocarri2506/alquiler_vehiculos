@@ -10,6 +10,9 @@ from apps.alquiler.api.v1.serializers import (
     VehiculoSerializer, AlquilerSerializer, ReservaSerializer
 )
 
+from datetime import datetime
+
+
 # ---------- Sucursal ----------
 class SucursalListCreateAPIView(APIView):
     def get(self, request):
@@ -225,3 +228,48 @@ class ReservaRetrieveUpdateDeleteAPIView(APIView):
         reserva = self.get_object(pk)
         reserva.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+
+
+
+
+class CalcularMontoAPIView(APIView):
+    def post(self, request):
+        vehiculo_id = request.data.get("vehiculo_id")
+        fecha_inicio = request.data.get("fecha_inicio")
+        fecha_fin = request.data.get("fecha_fin")
+
+        if not (vehiculo_id and fecha_inicio and fecha_fin):
+            return Response(
+                {"error": "Faltan datos: vehiculo_id, fecha_inicio y fecha_fin son requeridos"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id)
+
+        try:
+            fecha_inicio = datetime.strptime(fecha_inicio, "%Y-%m-%d").date()
+            fecha_fin = datetime.strptime(fecha_fin, "%Y-%m-%d").date()
+        except ValueError:
+            return Response(
+                {"error": "Las fechas deben tener formato YYYY-MM-DD"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if fecha_fin <= fecha_inicio:
+            return Response(
+                {"error": "La fecha de fin debe ser posterior a la de inicio"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        dias = (fecha_fin - fecha_inicio).days
+        precio_por_dia = vehiculo.precio_por_dia
+        monto_total = dias * precio_por_dia
+
+        return Response({
+            "vehiculo": str(vehiculo),
+            "dias": dias,
+            "precio_por_dia": precio_por_dia,
+            "monto_total_estimado": monto_total,
+        })

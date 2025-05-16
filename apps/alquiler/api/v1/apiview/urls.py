@@ -21,4 +21,6 @@ urlpatterns = [
 
     path('reservas/', ReservaListCreateAPIView.as_view()),
     path('reservas/<int:pk>/', ReservaRetrieveUpdateDeleteAPIView.as_view()),
+
+    path('alquileres/calcular-monto/', CalcularMontoAPIView.as_view(), name='calcular-monto'),
 ]
