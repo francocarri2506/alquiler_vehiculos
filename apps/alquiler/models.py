@@ -85,6 +85,7 @@ class Reserva(models.Model):
     sucursal = models.ForeignKey(Sucursal, on_delete=models.SET_NULL, null=True, blank=True, related_name='reservas')
     fecha_inicio = models.DateField()
     fecha_fin = models.DateField()
+    monto_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
 
     def __str__(self):

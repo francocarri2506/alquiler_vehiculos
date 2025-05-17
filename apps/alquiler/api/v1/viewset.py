@@ -40,10 +40,10 @@ class TipoVehiculoViewSet(viewsets.ModelViewSet):
     serializer_class = TipoVehiculoSerializer
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['nombre']
-    search_fields = ['nombre']
-    ordering_fields = ['nombre']
-    ordering = ['nombre']
+    filterset_fields = ['descripcion']
+    search_fields = ['descripcion']
+    ordering_fields = ['descripcion']
+    ordering = ['descripcion']
 
 class VehiculoViewSet(viewsets.ModelViewSet):
     queryset = Vehiculo.objects.all()
