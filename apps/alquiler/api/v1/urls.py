@@ -4,7 +4,7 @@ from rest_framework.routers import DefaultRouter
 # ViewSets
 from apps.alquiler.api.v1.viewset import (
     SucursalViewSet, MarcaViewSet, TipoVehiculoViewSet,
-    VehiculoViewSet, AlquilerViewSet, ReservaViewSet
+    VehiculoViewSet, AlquilerViewSet, ReservaViewSet, HistorialEstadoAlquilerViewSet
 )
 
 # Router para ViewSet
@@ -13,8 +13,11 @@ router.register(r'sucursales', SucursalViewSet)
 router.register(r'marcas', MarcaViewSet)
 router.register(r'tipos', TipoVehiculoViewSet)
 router.register(r'vehiculos', VehiculoViewSet)
-router.register(r'alquileres', AlquilerViewSet)
+#router.register(r'alquileres', AlquilerViewSet)
+router.register(r'alquileres', AlquilerViewSet, basename='alquiler')
 router.register(r'reservas', ReservaViewSet)
+router.register(r'historial-alquileres', HistorialEstadoAlquilerViewSet, basename='historial-alquiler')
+
 
 urlpatterns = [
     path('viewset/', include(router.urls)),            # → /api/v1/viewset/

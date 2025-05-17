@@ -37,7 +37,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     'rest_framework',
+    'django_filters',
 
     'apps.alquiler',
     'apps.usuario',
@@ -140,6 +142,26 @@ REST_FRAMEWORK = {
     'DEFAULT_VERSION': 'v1',
     'ALLOWED_VERSIONS': ['v1', 'v2'],
     'VERSION_PARAM': 'version',
-    
+
+#-------------------------FILTROS Y ORDEN--------------------------------#
+#                                                                        #
+#------------------------------------------------------------------------#
+
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.OrderingFilter',
+        'rest_framework.filters.SearchFilter',
+    ],
+
+
+#-------------------------CANTIDAD DE PAGINAS----------------------------#
+#cantidad de paginas por vista                                           #
+#------------------------------------------------------------------------#
+
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20, #cantidad que se va a mostrar por pagina
+
+
 
 }
+
