@@ -5,7 +5,8 @@ from rest_framework import serializers
 
 #from apps.alquiler.api.v1.mixins import RangoFechasVehiculoSerializerMixin
 from .mixins import RangoFechasVehiculoSerializerMixin
-from apps.alquiler.models import Sucursal, Marca, TipoVehiculo, Vehiculo, Alquiler, Reserva, HistorialEstadoAlquiler
+from apps.alquiler.models import Sucursal, Marca, TipoVehiculo, Vehiculo, Alquiler, Reserva, HistorialEstadoAlquiler, \
+    ModeloVehiculo
 
 from datetime import datetime
 import re   #es un módulo de Python que permite trabajar con expresiones regulares (regex).
@@ -133,6 +134,8 @@ class VehiculoSerializer(serializers.ModelSerializer):
         return data
 
 """
+"""
+#VEHICULO FUNCIONANDO, SI NO FUNCIONA EL CAMBIO DE LOS MODELOS, ESTE EL CORRECTO 18/5/ A LAS 9AM
 
 class VehiculoSerializer(serializers.ModelSerializer):
     # Campos para mostrar el nombre junto al UUID
@@ -200,7 +203,7 @@ class VehiculoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"patente": "La patente ya está registrada para otro vehículo."})
 
         return data
-
+"""
 class HistorialEstadoAlquilerSerializer(serializers.ModelSerializer):
     cambiado_por_username = serializers.CharField(source='cambiado_por.username', read_only=True)
 
@@ -576,3 +579,56 @@ class ReservaSerializer(RangoFechasVehiculoSerializerMixin):
             raise serializers.ValidationError("El cliente ya tiene una reserva activa o pendiente en ese rango de fechas.")
 
         return data
+
+
+
+
+#-------------------------MEJORA EN MODELOS-------------------------------#
+#                                                                        #
+#------------------------------------------------------------------------#
+
+
+class ModeloVehiculoSerializer(serializers.ModelSerializer):
+    marca_nombre = serializers.CharField(source='marca.nombre', read_only=True)
+    tipo_nombre = serializers.CharField(source='tipo.descripcion', read_only=True)
+
+    class Meta:
+        model = ModeloVehiculo
+        fields = ['id', 'nombre', 'marca', 'marca_nombre', 'tipo', 'tipo_nombre']
+
+
+class VehiculoSerializer(serializers.ModelSerializer):
+    modelo_nombre = serializers.CharField(source='modelo.nombre', read_only=True)
+    marca_nombre = serializers.CharField(source='modelo.marca.nombre', read_only=True)
+    tipo_nombre = serializers.CharField(source='modelo.tipo.descripcion', read_only=True)
+    sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
+
+    class Meta:
+        model = Vehiculo
+        fields = [
+            'id',
+            'modelo',           # UUID del modelo
+            'modelo_nombre',
+            'marca_nombre',
+            'tipo_nombre',
+            'año',
+            'patente',
+            'precio_por_dia',
+            'estado',
+            'sucursal',
+            'sucursal_nombre',
+        ]
+
+    def validate_patente(self, value):
+        patente_normalizada = value.strip().upper()
+        if not re.match(r'^[A-Z0-9]{6}$', patente_normalizada):
+            raise serializers.ValidationError("La patente debe tener exactamente 6 caracteres alfanuméricos.")
+        if Vehiculo.objects.filter(patente__iexact=patente_normalizada).exists():
+            raise serializers.ValidationError("Ya existe un vehículo con esta patente.")
+        return patente_normalizada
+
+    def validate_año(self, value):
+        año_actual = datetime.now().year
+        if value < 1950 or value > año_actual:
+            raise serializers.ValidationError(f"El año debe estar entre 1950 y {año_actual}.")
+        return value

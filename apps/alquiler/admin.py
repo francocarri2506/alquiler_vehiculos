@@ -14,11 +14,13 @@ class MarcaAdmin(admin.ModelAdmin):
 class TipoVehiculoAdmin(admin.ModelAdmin):
     search_fields = ('descripcion',)
 
+"""
 @admin.register(Vehiculo)
 class VehiculoAdmin(admin.ModelAdmin):
     list_display = ('marca', 'modelo', 'patente', 'estado', 'sucursal')
     list_filter = ('estado', 'sucursal', 'tipo')
     search_fields = ('modelo', 'patente')
+"""
 
 @admin.register(Alquiler)
 class AlquilerAdmin(admin.ModelAdmin):
@@ -31,3 +33,21 @@ class ReservaAdmin(admin.ModelAdmin):
     list_display = ('cliente', 'vehiculo', 'fecha_inicio', 'fecha_fin', 'estado', 'sucursal')
     list_filter = ('estado',)
     search_fields = ('cliente__username', 'vehiculo__patente')
+
+
+
+
+#-------------------------MEJORA EN MODELOS-------------------------------#
+#                                                                        #
+#------------------------------------------------------------------------#
+
+@admin.register(Vehiculo)
+class VehiculoAdmin(admin.ModelAdmin):
+    list_display = ('marca', 'modelo', 'patente', 'estado', 'sucursal')
+    list_filter = ('estado', 'sucursal', 'modelo__tipo')
+    search_fields = ('modelo__nombre', 'patente')
+
+    def marca(self, obj):
+        return obj.modelo.marca.nombre
+    marca.admin_order_field = 'modelo__marca__nombre'
+    marca.short_description = 'Marca'

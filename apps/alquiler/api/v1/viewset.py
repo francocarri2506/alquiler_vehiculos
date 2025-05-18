@@ -35,6 +35,7 @@ class MarcaViewSet(viewsets.ModelViewSet):
     ordering_fields = ['nombre']
     ordering = ['nombre']
 
+
 class TipoVehiculoViewSet(viewsets.ModelViewSet):
     queryset = TipoVehiculo.objects.all()
     serializer_class = TipoVehiculoSerializer
@@ -45,6 +46,8 @@ class TipoVehiculoViewSet(viewsets.ModelViewSet):
     ordering_fields = ['descripcion']
     ordering = ['descripcion']
 
+
+"""
 class VehiculoViewSet(viewsets.ModelViewSet):
     queryset = Vehiculo.objects.all()
     serializer_class = VehiculoSerializer
@@ -54,6 +57,8 @@ class VehiculoViewSet(viewsets.ModelViewSet):
     search_fields = ['modelo', 'patente']
     ordering_fields = ['modelo', 'patente']
     ordering = ['modelo']
+
+"""
 
 class AlquilerViewSet(viewsets.ModelViewSet):
     queryset = Alquiler.objects.all()
@@ -226,3 +231,28 @@ class HistorialEstadoAlquilerViewSet(viewsets.ReadOnlyModelViewSet): #ReadOnlyMo
         'alquiler__id',              # búsqueda por ID de alquiler
         'cambiado_por__username',    # búsqueda por nombre de usuario
     ]
+
+
+#-------------------------MEJORA EN MODELOS-------------------------------#
+#                                                                        #
+#------------------------------------------------------------------------#
+
+class VehiculoViewSet(viewsets.ModelViewSet):
+    queryset = Vehiculo.objects.all()
+    serializer_class = VehiculoSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        sucursal_id = self.request.query_params.get('sucursal')
+        if sucursal_id:
+            queryset = queryset.filter(sucursal__id=sucursal_id)
+        return queryset
+
+    @action(detail=False, methods=['get'], url_path='disponibles_por_sucursal/(?P<sucursal_id>[0-9a-f-]+)')
+    def disponibles_por_sucursal(self, request, sucursal_id=None):
+        disponibles = Vehiculo.objects.filter(
+            sucursal__id=sucursal_id,
+            estado='disponible'
+        )
+        serializer = self.get_serializer(disponibles, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
