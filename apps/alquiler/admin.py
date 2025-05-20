@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Sucursal, Marca, TipoVehiculo, Vehiculo, Alquiler, Reserva
+from .models import Sucursal, Marca, TipoVehiculo, Vehiculo, Alquiler, Reserva, ModeloVehiculo
+
 
 @admin.register(Sucursal)
 class SucursalAdmin(admin.ModelAdmin):
@@ -51,3 +52,11 @@ class VehiculoAdmin(admin.ModelAdmin):
         return obj.modelo.marca.nombre
     marca.admin_order_field = 'modelo__marca__nombre'
     marca.short_description = 'Marca'
+
+
+@admin.register(ModeloVehiculo)
+class ModeloVehiculoAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'marca', 'tipo', 'es_premium')  # Mostrar en la lista
+    list_filter = ('marca', 'tipo', 'es_premium')             # Agregar filtros laterales
+    search_fields = ('nombre', 'marca__nombre')               # Buscador
+    readonly_fields = ('es_premium',)                         # Evitar edición manual
