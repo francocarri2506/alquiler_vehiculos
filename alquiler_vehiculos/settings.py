@@ -163,5 +163,10 @@ REST_FRAMEWORK = {
 
 
 
-}
+} #termina rest framework
 
+
+#para mostrar los menajes de error en español
+LANGUAGE_CODE = 'es'
+
+USE_I18N = True

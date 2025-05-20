@@ -1,11 +1,11 @@
 
 from datetime import date
-
 from rest_framework import serializers
 
 #from apps.alquiler.api.v1.mixins import RangoFechasVehiculoSerializerMixin
 from .mixins import RangoFechasVehiculoSerializerMixin
-from apps.alquiler.models import Sucursal, Marca, TipoVehiculo, Vehiculo, Alquiler, Reserva, HistorialEstadoAlquiler
+from apps.alquiler.models import Sucursal, Marca, TipoVehiculo, Vehiculo, Alquiler, Reserva, HistorialEstadoAlquiler, \
+    ModeloVehiculo
 
 from datetime import datetime
 import re   #es un módulo de Python que permite trabajar con expresiones regulares (regex).
@@ -60,7 +60,7 @@ class TipoVehiculoSerializer(serializers.ModelSerializer):
         if TipoVehiculo.objects.filter(nombre__iexact=nombre_normalizado).exists():
             raise serializers.ValidationError("Ya existe un tipo de vehículo con este nombre.")
         return value
-"""
+""" 
 class VehiculoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vehiculo
@@ -112,7 +112,6 @@ class VehiculoSerializer(serializers.ModelSerializer):
         return value
 
 
-
     def validate(self, data):
         marca = data.get('marca')
         tipo = data.get('tipo')
@@ -134,73 +133,77 @@ class VehiculoSerializer(serializers.ModelSerializer):
 
 """
 
-class VehiculoSerializer(serializers.ModelSerializer):
-    # Campos para mostrar el nombre junto al UUID
-    marca_nombre = serializers.CharField(source='marca.nombre', read_only=True)
-    tipo_nombre = serializers.CharField(source='tipo.nombre', read_only=True)
-    sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
 
-    class Meta:
-        model = Vehiculo
-        fields = [
-            'id',
-            'marca',          # UUID de marca (relación)
-            'marca_nombre',   # Nombre de la marca (solo lectura)
-            'tipo',           # UUID de tipo (relación)
-            'tipo_nombre',    # Nombre del tipo (solo lectura)
-            'modelo',
-            'año',
-            'patente',
-            'precio_por_dia',
-            'sucursal',       # UUID de sucursal (relación)
-            'sucursal_nombre' # Nombre de la sucursal (solo lectura)
-        ]
-
-    def validate_patente(self, value):
-        patente_normalizada = value.strip().upper()
-
-        # Validar formato (6 caracteres, solo letras y números)
-        if not re.match(r'^[A-Z0-9]{6}$', patente_normalizada):
-            raise serializers.ValidationError(
-                "La patente debe tener exactamente 6 caracteres alfanuméricos en mayúsculas (sin símbolos)."
-            )
-
-        # Validar unicidad (case-insensitive)
-        if Vehiculo.objects.filter(patente__iexact=patente_normalizada).exists():
-            raise serializers.ValidationError("Ya existe un vehículo con esta patente.")
-
-        return patente_normalizada
-
-    def validate_año(self, value):
-        año_actual = datetime.now().year
-        if value < 1950 or value > año_actual:
-            raise serializers.ValidationError(f"El año debe estar entre 1950 y {año_actual}.")
-        return value
-
-    def validate(self, data):
-        marca = data.get('marca')
-        tipo = data.get('tipo')
-        sucursal = data.get('sucursal')
-
-        # Validar que las relaciones existan (solo si vienen como UUID)
-        if isinstance(marca, (str, int)):
-            if not Marca.objects.filter(id=marca).exists():
-                raise serializers.ValidationError({"marca": "La marca seleccionada no existe."})
-        if isinstance(tipo, (str, int)):
-            if not TipoVehiculo.objects.filter(id=tipo).exists():
-                raise serializers.ValidationError({"tipo": "El tipo de vehículo seleccionado no existe."})
-        if isinstance(sucursal, (str, int)):
-            if not Sucursal.objects.filter(id=sucursal).exists():
-                raise serializers.ValidationError({"sucursal": "La sucursal seleccionada no existe."})
-
-        # Validar unicidad de patente en update
-        patente = data.get('patente')
-        vehiculo_id = self.instance.id if self.instance else None
-        if Vehiculo.objects.filter(patente=patente).exclude(id=vehiculo_id).exists():
-            raise serializers.ValidationError({"patente": "La patente ya está registrada para otro vehículo."})
-
-        return data
-
+"""
+# #VEHICULO FUNCIONANDO, SI NO FUNCIONA EL CAMBIO DE LOS MODELOS, ESTE EL CORRECTO 18/5/ A LAS 9AM
+# 
+# class VehiculoSerializer(serializers.ModelSerializer):
+#     # Campos para mostrar el nombre junto al UUID
+#     marca_nombre = serializers.CharField(source='marca.nombre', read_only=True)
+#     tipo_nombre = serializers.CharField(source='tipo.nombre', read_only=True)
+#     sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
+# 
+#     class Meta:
+#         model = Vehiculo
+#         fields = [
+#             'id',
+#             'marca',          # UUID de marca (relación)
+#             'marca_nombre',   # Nombre de la marca (solo lectura)
+#             'tipo',           # UUID de tipo (relación)
+#             'tipo_nombre',    # Nombre del tipo (solo lectura)
+#             'modelo',
+#             'año',
+#             'patente',
+#             'precio_por_dia',
+#             'sucursal',       # UUID de sucursal (relación)
+#             'sucursal_nombre' # Nombre de la sucursal (solo lectura)
+#         ]
+# 
+#     def validate_patente(self, value):
+#         patente_normalizada = value.strip().upper()
+# 
+#         # Validar formato (6 caracteres, solo letras y números)
+#         if not re.match(r'^[A-Z0-9]{6}$', patente_normalizada):
+#             raise serializers.ValidationError(
+#                 "La patente debe tener exactamente 6 caracteres alfanuméricos en mayúsculas (sin símbolos)."
+#             )
+# 
+#         # Validar unicidad (case-insensitive)
+#         if Vehiculo.objects.filter(patente__iexact=patente_normalizada).exists():
+#             raise serializers.ValidationError("Ya existe un vehículo con esta patente.")
+# 
+#         return patente_normalizada
+# 
+#     def validate_año(self, value):
+#         año_actual = datetime.now().year
+#         if value < 1950 or value > año_actual:
+#             raise serializers.ValidationError(f"El año debe estar entre 1950 y {año_actual}.")
+#         return value
+# 
+#     def validate(self, data):
+#         marca = data.get('marca')
+#         tipo = data.get('tipo')
+#         sucursal = data.get('sucursal')
+# 
+#         # Validar que las relaciones existan (solo si vienen como UUID)
+#         if isinstance(marca, (str, int)):
+#             if not Marca.objects.filter(id=marca).exists():
+#                 raise serializers.ValidationError({"marca": "La marca seleccionada no existe."})
+#         if isinstance(tipo, (str, int)):
+#             if not TipoVehiculo.objects.filter(id=tipo).exists():
+#                 raise serializers.ValidationError({"tipo": "El tipo de vehículo seleccionado no existe."})
+#         if isinstance(sucursal, (str, int)):
+#             if not Sucursal.objects.filter(id=sucursal).exists():
+#                 raise serializers.ValidationError({"sucursal": "La sucursal seleccionada no existe."})
+# 
+#         # Validar unicidad de patente en update
+#         patente = data.get('patente')
+#         vehiculo_id = self.instance.id if self.instance else None
+#         if Vehiculo.objects.filter(patente=patente).exclude(id=vehiculo_id).exists():
+#             raise serializers.ValidationError({"patente": "La patente ya está registrada para otro vehículo."})
+# 
+#         return data
+"""
 class HistorialEstadoAlquilerSerializer(serializers.ModelSerializer):
     cambiado_por_username = serializers.CharField(source='cambiado_por.username', read_only=True)
 
@@ -493,11 +496,386 @@ class ReservaSerializer(serializers.ModelSerializer):
 
 
 
-class AlquilerSerializer(RangoFechasVehiculoSerializerMixin):
+#-------------------------MEJORA EN MODELOS-------------------------------#
+#                                                                        #
+#------------------------------------------------------------------------#
+
+"""
+class ModeloVehiculoSerializer(serializers.ModelSerializer):
+    marca_nombre = serializers.CharField(source='marca.nombre', read_only=True)
+    tipo_nombre = serializers.CharField(source='tipo.descripcion', read_only=True)
+
+    class Meta:
+        model = ModeloVehiculo
+        fields = ['id', 'nombre', 'marca', 'marca_nombre', 'tipo', 'tipo_nombre']
+"""
+
+
+
+# class ModeloVehiculoSerializer(serializers.ModelSerializer):
+#     marca_nombre = serializers.CharField(source='marca.nombre', read_only=True)
+#     tipo_nombre = serializers.CharField(source='tipo.descripcion', read_only=True)
+#     es_premium = serializers.SerializerMethodField()
+#
+#     class Meta:
+#         model = ModeloVehiculo
+#         fields = ['id', 'nombre', 'marca', 'marca_nombre', 'tipo', 'tipo_nombre', 'es_premium']
+#
+#     def get_es_premium(self, obj):
+#         return obj.es_premium()
+#
+#     def validate_nombre(self, value):
+#
+#         # que sea un nombre valido de por lo menos 2 caracteres (permitido A1, A3, etc.)
+#         if len(value.strip()) < 2:
+#             raise serializers.ValidationError("El nombre del modelo debe tener al menos 2 caracteres.")
+#         return value
+#
+#     def validate(self, attrs):
+#         marca = attrs.get('marca')
+#         tipo = attrs.get('tipo')
+#         nombre = attrs.get('nombre')
+#
+#         # Validar que el nombre del modelo no contenga la marca
+#
+#         if marca.nombre.lower() in nombre:
+#             raise serializers.ValidationError("El nombre del modelo no debe contener el nombre de la marca.")
+#
+#         #  Validar que no puede repetirse nombre+marca+tipo
+#         existe = ModeloVehiculo.objects.filter(
+#             marca=marca,
+#             nombre__iexact=nombre.strip(),
+#             tipo=tipo
+#         ).exclude(id=self.instance.id if self.instance else None)
+#
+#         if existe.exists():
+#             raise serializers.ValidationError(
+#                 "Ya existe un modelo con ese nombre para esa marca y tipo."
+#             )
+#
+#         # Validación específica para marca genérica y tipo deportivo
+#         if marca.nombre.lower() == 'genérica' and tipo.descripcion.lower() == 'deportivo':
+#             raise serializers.ValidationError(
+#                 "Los vehículos de marca genérica no pueden ser deportivos."
+#             )
+#
+#         return attrs
+
+class ModeloVehiculoSerializer(serializers.ModelSerializer):
+    marca_nombre = serializers.CharField(source='marca.nombre', read_only=True)
+    tipo_nombre = serializers.CharField(source='tipo.descripcion', read_only=True)
+
+    class Meta:
+        model = ModeloVehiculo
+        fields = ['id', 'nombre', 'marca', 'marca_nombre', 'tipo', 'tipo_nombre', 'es_premium']
+
+    def validate_nombre(self, value):
+        marca = self.initial_data.get('marca')
+        if marca:
+            try:
+                marca_obj = Marca.objects.get(id=marca)
+                if marca_obj.nombre.lower() in value.lower():
+                    raise serializers.ValidationError(
+                        "El nombre del modelo no debe contener el nombre de la marca."
+                    )
+            except Marca.DoesNotExist:
+                pass  # Marca inválida será manejada por validaciones estándar
+        return value
+
+    def validate(self, attrs):
+        # Validación cruzada nombre/tipo/marca
+        nombre = attrs.get('nombre')
+        marca = attrs.get('marca')
+        tipo = attrs.get('tipo')
+
+        if self.instance:
+            # Evita el error al actualizar
+            nombre = nombre or self.instance.nombre
+            marca = marca or self.instance.marca
+            tipo = tipo or self.instance.tipo
+
+        # Validar que no exista un modelo con el mismo nombre y marca + tipo
+        existe = ModeloVehiculo.objects.filter(
+            nombre__iexact=nombre,
+            marca=marca,
+            tipo=tipo
+        ).exclude(id=self.instance.id if self.instance else None)
+
+        if existe.exists():
+            raise serializers.ValidationError("Ya existe un modelo con ese nombre, marca y tipo.")
+
+        return attrs
+
+
+
+class VehiculoSerializer(serializers.ModelSerializer):
+    modelo_nombre = serializers.CharField(source='modelo.nombre', read_only=True)
+    marca_nombre = serializers.CharField(source='modelo.marca.nombre', read_only=True)
+    tipo_nombre = serializers.CharField(source='modelo.tipo.descripcion', read_only=True)
+    sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
+
+    #para que el mensaje no se muestre en ingles
+    patente = serializers.CharField(
+        error_messages={
+            "unique": "Ya existe un vehículo con esta patente.",
+            "invalid": "El valor ingresado para la patente no es válido."
+        }
+    )
+    class Meta:
+        model = Vehiculo
+        fields = [
+            'id',
+            'modelo',           # UUID del modelo
+            'modelo_nombre',
+            'marca_nombre',
+            'tipo_nombre',
+            'año',
+            'patente',
+            'precio_por_dia',
+            'estado',
+            'sucursal',
+            'sucursal_nombre',
+        ]
+
+    def validate_patente(self, value):
+        patente_normalizada = value.strip().upper()
+
+        # Validar formato (6 caracteres, solo letras y números)
+        if not re.match(r'^[A-Z0-9]{6}$', patente_normalizada):
+            raise serializers.ValidationError(
+                "La patente debe tener exactamente 6 caracteres alfanuméricos (sin símbolos)."
+            )
+        # Validar unicidad (case-insensitive)
+        if Vehiculo.objects.filter(patente__iexact=patente_normalizada).exists():
+            raise serializers.ValidationError(
+                "Ya existe un vehículo con esta patente."
+            )
+        return patente_normalizada
+
+    def validate_año(self, value):
+        año_actual = datetime.now().year
+
+        if value < 1950 or value > año_actual:
+            raise serializers.ValidationError(
+                f"El año debe estar entre 1950 y {año_actual}."
+            )
+        return value
+
+
+    def validate(self, data):
+        modelo = data.get('modelo')
+        sucursal = data.get('sucursal')
+
+        # Validar existencia de modelo
+        if isinstance(modelo, (str, int)):
+            if not ModeloVehiculo.objects.filter(id=modelo).exists():
+                raise serializers.ValidationError({"modelo": "El modelo seleccionado no existe."})
+        # Validar existencia de sucursal
+        if isinstance(sucursal, (str, int)):
+            if not Sucursal.objects.filter(id=sucursal).exists():
+                raise serializers.ValidationError({"sucursal": "La sucursal seleccionada no existe."})
+
+        return data
+
+
+# #----------------------------USANDO MIXINS-------------------------------#
+# #                                                                        #
+# #------------------------------------------------------------------------#
+#
+#
+# class AlquilerSerializer(RangoFechasVehiculoSerializerMixin):
+#     cliente_nombre = serializers.CharField(source='cliente.username', read_only=True)
+#     vehiculo_info = serializers.SerializerMethodField()
+#     sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
+#     monto_total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+#
+#     class Meta:
+#         model = Alquiler
+#         fields = [
+#             'id',
+#             'cliente',
+#             'cliente_nombre',
+#             'vehiculo',
+#             'vehiculo_info',
+#             'sucursal',
+#             'sucursal_nombre',
+#             'fecha_inicio',
+#             'fecha_fin',
+#             'monto_total',
+#             'estado',
+#         ]
+#
+#     def get_vehiculo_info(self, obj):
+#         return f"{obj.vehiculo.modelo.marca.nombre} {obj.vehiculo.modelo.nombre} - {obj.vehiculo.patente}"
+#
+#     def validate(self, data):
+#         data = super().validate(data)
+#         cliente = data.get('cliente')
+#
+#         conflictos_cliente = Alquiler.objects.filter(
+#             cliente=cliente,
+#             estado__in=["pendiente", "activo"],
+#             fecha_inicio__lt=data['fecha_fin'],
+#             fecha_fin__gt=data['fecha_inicio'],
+#         ).exclude(id=self.instance.id if self.instance else None)
+#
+#         if conflictos_cliente.exists():
+#             raise serializers.ValidationError("El cliente ya tiene un alquiler activo o pendiente en ese rango de fechas.")
+#         return data
+#
+# class ReservaSerializer(RangoFechasVehiculoSerializerMixin):
+#     cliente_nombre = serializers.CharField(source='cliente.username', read_only=True)
+#     vehiculo_info = serializers.SerializerMethodField()
+#     sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
+#     monto_total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+#
+#     class Meta:
+#         model = Reserva
+#         fields = [
+#             'id',
+#             'cliente',
+#             'cliente_nombre',
+#             'vehiculo',
+#             'vehiculo_info',
+#             'sucursal',
+#             'sucursal_nombre',
+#             'fecha_inicio',
+#             'fecha_fin',
+#             'monto_total',
+#             'estado',
+#         ]
+#
+#     def get_vehiculo_info(self, obj):
+#         return f"{obj.vehiculo.modelo.marca.nombre} {obj.vehiculo.modelo.nombre} - {obj.vehiculo.patente}"
+#
+#     def validate(self, data):
+#         data = super().validate(data)
+#         cliente = data.get('cliente')
+#
+#         conflictos_cliente = Reserva.objects.filter(
+#             cliente=cliente,
+#             estado__in=["pendiente", "confirmada"],
+#             fecha_inicio__lt=data['fecha_fin'],
+#             fecha_fin__gt=data['fecha_inicio'],
+#         ).exclude(id=self.instance.id if self.instance else None)
+#
+#         if conflictos_cliente.exists():
+#             raise serializers.ValidationError("El cliente ya tiene una reserva activa o pendiente en ese rango de fechas.")
+#         return data
+#
+#
+# #----------------------------USANDO MIXINS-------------------------------#
+# #                                                                        #
+# #------------------------------------------------------------------------#
+
+
+
+# #----------------------------versión básica inicial----------------------#
+# #                                                                        #
+# #------------------------------------------------------------------------#
+from decimal import Decimal
+
+class ReservaSerializer(serializers.ModelSerializer):
+
     cliente_nombre = serializers.CharField(source='cliente.username', read_only=True)
     vehiculo_info = serializers.SerializerMethodField()
     sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
-    monto_total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    #monto_total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    monto_total = serializers.SerializerMethodField()
+    class Meta:
+        model = Reserva
+        fields = [
+            'id',
+            'cliente',
+            'cliente_nombre',
+            'vehiculo',
+            'vehiculo_info',
+            'sucursal',
+            'sucursal_nombre',
+            'fecha_inicio',
+            'fecha_fin',
+            'monto_total',
+            'estado',
+        ]
+
+    def get_vehiculo_info(self, obj):
+        return f"{obj.vehiculo.modelo.marca.nombre} {obj.vehiculo.modelo.nombre} - {obj.vehiculo.patente}"
+
+#----------------------------------------en caso de tener campos agregados antes-----------------------
+    def get_monto_total(self, obj):
+        # Si ya tiene un total distinto de cero, mostrarlo
+        if obj.monto_total and obj.monto_total > 0:
+            return obj.monto_total
+
+        # Si el monto es cero, lo calculamos
+        dias = (obj.fecha_fin - obj.fecha_inicio).days
+        if dias < 1:
+            dias = 1
+        return dias * obj.vehiculo.precio_por_dia
+
+# ---------------------------------------------------------------
+    def validate(self, data):
+        fecha_inicio = data.get('fecha_inicio')
+        fecha_fin = data.get('fecha_fin')
+        vehiculo = data.get('vehiculo')
+
+        # Validar que La fecha de inicio debe ser anterior a la fecha de fin
+        if fecha_inicio and fecha_fin and fecha_inicio >= fecha_fin:
+            raise serializers.ValidationError("La fecha de inicio debe ser anterior a la fecha de fin.")
+
+        # Validar que el vehículo no esté reservado o alquilado en ese rango de fechas
+        if vehiculo and fecha_inicio and fecha_fin:
+            reservas_conflictivas = Reserva.objects.filter(
+                vehiculo=vehiculo,
+                estado__in=['pendiente', 'confirmada'],
+                fecha_inicio__lt=fecha_fin,
+                fecha_fin__gt=fecha_inicio
+            ).exclude(id=self.instance.id if self.instance else None)
+
+            if reservas_conflictivas.exists():
+                raise serializers.ValidationError("El vehículo ya tiene una reserva en ese rango de fechas.")
+
+            alquileres_conflictivos = Alquiler.objects.filter(
+                vehiculo=vehiculo,
+                estado__in=['pendiente', 'activo'],
+                fecha_inicio__lt=fecha_fin,
+                fecha_fin__gt=fecha_inicio
+            )
+
+            if alquileres_conflictivos.exists():
+                raise serializers.ValidationError("El vehículo ya está alquilado en ese rango de fechas.")
+
+        return data
+
+    def calculate_monto_total(self, vehiculo, fecha_inicio, fecha_fin):
+        dias = (fecha_fin - fecha_inicio).days
+        if dias < 1:
+            dias = 1  # Por si hay error o alquiler por 1 día
+        return Decimal(dias) * vehiculo.precio_por_dia
+
+    def create(self, validated_data):
+        monto_total = self.calculate_monto_total(
+            validated_data['vehiculo'],
+            validated_data['fecha_inicio'],
+            validated_data['fecha_fin']
+        )
+        validated_data['monto_total'] = monto_total
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # Solo recalcular si se cambió alguna fecha o el vehículo
+        fecha_inicio = validated_data.get('fecha_inicio', instance.fecha_inicio)
+        fecha_fin = validated_data.get('fecha_fin', instance.fecha_fin)
+        vehiculo = validated_data.get('vehiculo', instance.vehiculo)
+
+        validated_data['monto_total'] = self.calculate_monto_total(vehiculo, fecha_inicio, fecha_fin)
+        return super().update(instance, validated_data)
+
+class AlquilerSerializer(serializers.ModelSerializer):
+    cliente_nombre = serializers.CharField(source='cliente.username', read_only=True)
+    vehiculo_info = serializers.SerializerMethodField()
+    sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
+    monto_total = serializers.SerializerMethodField()
 
     class Meta:
         model = Alquiler
@@ -516,63 +894,173 @@ class AlquilerSerializer(RangoFechasVehiculoSerializerMixin):
         ]
 
     def get_vehiculo_info(self, obj):
-        return f"{obj.vehiculo.marca.nombre} {obj.vehiculo.modelo} - {obj.vehiculo.patente}"
+        return f"{obj.vehiculo.modelo.marca.nombre} {obj.vehiculo.modelo.nombre} - {obj.vehiculo.patente}"
+
+    def get_monto_total(self, obj):
+        # Si monto_total guardado es > 0, devuelve ese valor, si no, calcula al vuelo
+        if obj.monto_total and obj.monto_total > 0:
+            return obj.monto_total
+        else:
+            dias = (obj.fecha_fin - obj.fecha_inicio).days + 1
+            return dias * obj.vehiculo.precio_por_dia
 
     def validate(self, data):
-        data = super().validate(data)
-        cliente = data.get('cliente')
+        fecha_inicio = data['fecha_inicio']
+        fecha_fin = data['fecha_fin']
+        vehiculo = data['vehiculo']
 
-        # Verificar si el cliente ya tiene un alquiler pendiente o activo
-        alquileres_cliente = Alquiler.objects.filter(
-            cliente=cliente,
-            estado__in=["pendiente", "activo"],
-            fecha_inicio__lt=data['fecha_fin'],
-            fecha_fin__gt=data['fecha_inicio'],
-        ).exclude(id=self.instance.id if self.instance else None)
+        # Validación: fecha de inicio < fecha de fin
+        if fecha_inicio >= fecha_fin:
+            raise serializers.ValidationError("La fecha de inicio debe ser anterior a la fecha de fin.")
 
-        if alquileres_cliente.exists():
-            raise serializers.ValidationError("El cliente ya tiene un alquiler activo o pendiente en ese rango de fechas.")
+        # Validación: el vehículo no está alquilado en ese rango
+        alquileres_superpuestos = Alquiler.objects.filter(
+            vehiculo=vehiculo,
+            fecha_fin__gt=fecha_inicio,
+            fecha_inicio__lt=fecha_fin
+        )
+        if self.instance:
+            alquileres_superpuestos = alquileres_superpuestos.exclude(id=self.instance.id)
+
+        if alquileres_superpuestos.exists():
+            raise serializers.ValidationError("El vehículo ya está alquilado en esas fechas.")
+
+        # Validación: el vehículo no está reservado en ese rango
+        reservas_superpuestas = Reserva.objects.filter(
+            vehiculo=vehiculo,
+            estado__in=['pendiente', 'confirmada'],
+            fecha_fin__gt=fecha_inicio,
+            fecha_inicio__lt=fecha_fin
+        )
+
+        if reservas_superpuestas.exists():
+            raise serializers.ValidationError("El vehículo ya está reservado en esas fechas.")
 
         return data
 
-class ReservaSerializer(RangoFechasVehiculoSerializerMixin):
-    cliente_nombre = serializers.CharField(source='cliente.username', read_only=True)
-    vehiculo_info = serializers.SerializerMethodField()
-    sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
-    monto_total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
 
-    class Meta:
-        model = Reserva
-        fields = [
-            'id',
-            'cliente',
-            'cliente_nombre',
-            'vehiculo',
-            'vehiculo_info',
-            'sucursal',
-            'sucursal_nombre',
-            'fecha_inicio',
-            'fecha_fin',
-            'monto_total',
-            'estado',
-        ]
+    def create(self, validated_data):
+        dias = (validated_data['fecha_fin'] - validated_data['fecha_inicio']).days
+        dias = dias if dias > 0 else 1
+        precio_diario = validated_data['vehiculo'].precio_diario
+        validated_data['monto_total'] = dias * precio_diario
+        return super().create(validated_data)
 
-    def get_vehiculo_info(self, obj):
-        return f"{obj.vehiculo.marca.nombre} {obj.vehiculo.modelo} - {obj.vehiculo.patente}"
-
-    def validate(self, data):
-        data = super().validate(data)
-        cliente = data.get('cliente')
-
-        # Verificar si el cliente ya tiene una reserva activa o pendiente
-        reservas_cliente = Reserva.objects.filter(
-            cliente=cliente,
-            estado__in=["pendiente", "confirmada"],
-            fecha_inicio__lt=data['fecha_fin'],
-            fecha_fin__gt=data['fecha_inicio'],
-        ).exclude(id=self.instance.id if self.instance else None)
-
-        if reservas_cliente.exists():
-            raise serializers.ValidationError("El cliente ya tiene una reserva activa o pendiente en ese rango de fechas.")
-
-        return data
+# class AlquilerSerializer(serializers.ModelSerializer):
+#     cliente_nombre = serializers.CharField(source='cliente.username', read_only=True)
+#     vehiculo_info = serializers.SerializerMethodField()
+#     sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
+#     monto_total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+#
+#     class Meta:
+#         model = Alquiler
+#         fields = [
+#             'id',
+#             'cliente',
+#             'cliente_nombre',
+#             'vehiculo',
+#             'vehiculo_info',
+#             'sucursal',
+#             'sucursal_nombre',
+#             'fecha_inicio',
+#             'fecha_fin',
+#             'monto_total',
+#             'estado',
+#         ]
+#
+#     def get_vehiculo_info(self, obj):
+#         return f"{obj.vehiculo.modelo.marca.nombre} {obj.vehiculo.modelo.nombre} - {obj.vehiculo.patente}"
+#
+#     def validate(self, data):
+#         fecha_inicio = data.get('fecha_inicio')
+#         fecha_fin = data.get('fecha_fin')
+#         vehiculo = data.get('vehiculo')
+#
+#         if fecha_inicio >= fecha_fin:
+#             raise serializers.ValidationError("La fecha de inicio debe ser anterior a la fecha de fin.")
+#
+#         if vehiculo.estado not in ['disponible', 'reservado']:
+#             raise serializers.ValidationError("El vehículo no se encuentra disponible para alquilar.")
+#
+#         # verificar conflictos con otros alquileres activos
+#         conflictos = Alquiler.objects.filter(
+#             vehiculo=vehiculo,
+#             fecha_inicio__lt=fecha_fin,
+#             fecha_fin__gt=fecha_inicio
+#         ).exclude(id=self.instance.id if self.instance else None)
+#
+#         if conflictos.exists():
+#             raise serializers.ValidationError("El vehículo ya está alquilado en ese rango de fechas.")
+#
+#         return data
+#
+#     def create(self, validated_data):
+#         vehiculo = validated_data['vehiculo']
+#         dias = (validated_data['fecha_fin'] - validated_data['fecha_inicio']).days
+#         validated_data['monto_total'] = dias * vehiculo.precio_por_dia
+#
+#         # Cambiar estado del vehículo a "alquilado"
+#         vehiculo.estado = 'alquilado'
+#         vehiculo.save()
+#
+#         return super().create(validated_data)
+#
+#
+# class ReservaSerializer(serializers.ModelSerializer):
+#     cliente_nombre = serializers.CharField(source='cliente.username', read_only=True)
+#     vehiculo_info = serializers.SerializerMethodField()
+#     sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
+#     monto_total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+#
+#     class Meta:
+#         model = Reserva
+#         fields = [
+#             'id',
+#             'cliente',
+#             'cliente_nombre',
+#             'vehiculo',
+#             'vehiculo_info',
+#             'sucursal',
+#             'sucursal_nombre',
+#             'fecha_inicio',
+#             'fecha_fin',
+#             'monto_total',
+#             'estado',
+#         ]
+#
+#     def get_vehiculo_info(self, obj):
+#         return f"{obj.vehiculo.modelo.marca.nombre} {obj.vehiculo.modelo.nombre} - {obj.vehiculo.patente}"
+#
+#     def validate(self, data):
+#         fecha_inicio = data.get('fecha_inicio')
+#         fecha_fin = data.get('fecha_fin')
+#         vehiculo = data.get('vehiculo')
+#
+#         if fecha_inicio >= fecha_fin:
+#             raise serializers.ValidationError("La fecha de inicio debe ser anterior a la fecha de fin.")
+#
+#         if vehiculo.estado != 'disponible':
+#             raise serializers.ValidationError("El vehículo no está disponible para reservar.")
+#
+#         # verificar reservas que se superpongan
+#         conflictos = Reserva.objects.filter(
+#             vehiculo=vehiculo,
+#             fecha_inicio__lt=fecha_fin,
+#             fecha_fin__gt=fecha_inicio
+#         ).exclude(id=self.instance.id if self.instance else None)
+#
+#         if conflictos.exists():
+#             raise serializers.ValidationError("El vehículo ya tiene una reserva en ese rango de fechas.")
+#
+#         return data
+#
+#     def create(self, validated_data):
+#         vehiculo = validated_data['vehiculo']
+#         dias = (validated_data['fecha_fin'] - validated_data['fecha_inicio']).days
+#         validated_data['monto_total'] = dias * vehiculo.precio_por_dia
+#
+#         # Cambiar estado del vehículo a "reservado"
+#         vehiculo.estado = 'reservado'
+#         vehiculo.save()
+#
+#         return super().create(validated_data)

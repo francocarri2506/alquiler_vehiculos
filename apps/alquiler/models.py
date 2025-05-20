@@ -29,6 +29,8 @@ class TipoVehiculo(models.Model):
     def __str__(self):
         return self.descripcion
 
+
+"""
 class Vehiculo(models.Model):
     ESTADO_CHOICES = [
         ('disponible', 'Disponible'),
@@ -51,6 +53,75 @@ class Vehiculo(models.Model):
         return f"{self.marca.nombre} {self.modelo} ({self.patente})"
 
 
+
+"""
+
+
+
+
+
+
+#-------------------------MEJORA EN MODELOS-------------------------------#
+#                                                                         #
+#-------------------------------------------------------------------------#
+
+
+class ModeloVehiculo(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    nombre = models.CharField(max_length=100)
+    marca = models.ForeignKey(Marca, on_delete=models.CASCADE, related_name='modelos')
+    tipo = models.ForeignKey(TipoVehiculo, on_delete=models.PROTECT, related_name='modelos')
+    es_premium = models.BooleanField(default=False, editable=False)  # Campo calculado
+
+    class Meta:
+        unique_together = ('nombre', 'marca') # Un modelo no puede repetirse dentro de la misma marca
+
+    def __str__(self):
+        return f"{self.marca.nombre} {self.nombre}"
+
+    def calcular_es_premium(self):
+        return self.tipo.descripcion.lower() == 'deportivo' and self.marca.nombre.lower() in ['audi', 'bmw', 'mercedes']
+
+    def save(self, *args, **kwargs):
+        self.es_premium = self.calcular_es_premium()
+        super().save(*args, **kwargs)
+
+
+class Vehiculo(models.Model):
+    ESTADO_CHOICES = [
+        ('disponible', 'Disponible'),
+        ('alquilado', 'Alquilado'),
+        ('mantenimiento', 'En mantenimiento'),
+        ('reservado', 'Reservado'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    modelo = models.ForeignKey(ModeloVehiculo, on_delete=models.CASCADE, related_name='vehiculos')
+
+    #modelo = models.ForeignKey(ModeloVehiculo, null=True, on_delete=models.SET_NULL)
+    patente = models.CharField(max_length=20, unique=True)
+    año = models.PositiveIntegerField()
+    precio_por_dia = models.DecimalField(max_digits=10, decimal_places=2)
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='disponible')
+    sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE, related_name='vehiculos')
+
+    """
+    def __str__(self):
+        return f"{self.modelo.marca.nombre} {self.modelo.nombre} ({self.patente})"
+    """
+    def __str__(self):
+        return f"{self.modelo.marca.nombre} {self.modelo.nombre} - {self.patente}"
+
+    @property
+    def tipo(self):
+        return self.modelo.tipo
+
+
+#-------------------------MEJORA EN MODELOS-------------------------------#
+#                                                                         #
+#-------------------------------------------------------------------------#
+
+
 class Alquiler(models.Model):
     ESTADO_CHOICES = [
         ('pendiente', 'Pendiente'),
@@ -70,7 +141,6 @@ class Alquiler(models.Model):
 
     def __str__(self):
         return f"Alquiler {self.id} - {self.cliente}"
-
 
 class Reserva(models.Model):
     ESTADO_CHOICES = [
@@ -102,3 +172,12 @@ class HistorialEstadoAlquiler(models.Model):
 
     def __str__(self):
         return f"{self.alquiler.id} | {self.estado_anterior} → {self.estado_nuevo} ({self.fecha_cambio})"
+
+
+
+
+"""
+
+
+"""
+
