@@ -2,6 +2,7 @@
 from datetime import date
 from rest_framework import serializers
 
+from .dolar import obtener_precio_dolar_blue
 #from apps.alquiler.api.v1.mixins import RangoFechasVehiculoSerializerMixin
 from .mixins import RangoFechasVehiculoSerializerMixin
 from apps.alquiler.models import Sucursal, Marca, TipoVehiculo, Vehiculo, Alquiler, Reserva, HistorialEstadoAlquiler, \
@@ -613,6 +614,7 @@ class VehiculoSerializer(serializers.ModelSerializer):
     marca_nombre = serializers.CharField(source='modelo.marca.nombre', read_only=True)
     tipo_nombre = serializers.CharField(source='modelo.tipo.descripcion', read_only=True)
     sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
+    precio_usd = serializers.SerializerMethodField()
 
     #para que el mensaje no se muestre en ingles
     patente = serializers.CharField(
@@ -632,10 +634,18 @@ class VehiculoSerializer(serializers.ModelSerializer):
             'año',
             'patente',
             'precio_por_dia',
+            'precio_usd',
             'estado',
             'sucursal',
             'sucursal_nombre',
         ]
+        read_only_fields = ['precio_usd']
+
+    def get_precio_usd(self, obj):
+        tipo_cambio = obtener_precio_dolar_blue()
+        if tipo_cambio:
+            return round(obj.precio_por_dia / tipo_cambio, 2)
+        return None
 
     def validate_patente(self, value):
         patente_normalizada = value.strip().upper()
@@ -775,13 +785,315 @@ class VehiculoSerializer(serializers.ModelSerializer):
 # #------------------------------------------------------------------------#
 from decimal import Decimal
 
-class ReservaSerializer(serializers.ModelSerializer):
 
+#############################esta reserva es la que estaba funcionando
+
+
+# class ReservaSerializer(serializers.ModelSerializer):
+#
+#     cliente_nombre = serializers.CharField(source='cliente.username', read_only=True)
+#     vehiculo_info = serializers.SerializerMethodField()
+#     sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
+#     #monto_total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+#     monto_total = serializers.SerializerMethodField()
+#     monto_usd = serializers.SerializerMethodField()
+#     class Meta:
+#         model = Reserva
+#         fields = [
+#             'id',
+#             'cliente',
+#             'cliente_nombre',
+#             'vehiculo',
+#             'vehiculo_info',
+#             'sucursal',
+#             'sucursal_nombre',
+#             'fecha_inicio',
+#             'fecha_fin',
+#             'monto_total',
+#             'monto_usd',
+#             'estado',
+#         ]
+#
+#     def get_vehiculo_info(self, obj):
+#         return f"{obj.vehiculo.modelo.marca.nombre} {obj.vehiculo.modelo.nombre} - {obj.vehiculo.patente}"
+#
+# #----------------------------------------en caso de tener campos agregados antes-----------------------
+#     def get_monto_total(self, obj):
+#         # Si ya tiene un total distinto de cero, mostrarlo
+#         if obj.monto_total and obj.monto_total > 0:
+#             return obj.monto_total
+#
+#         # Si el monto es cero, lo calculamos
+#         dias = (obj.fecha_fin - obj.fecha_inicio).days
+#         if dias < 1:
+#             dias = 1
+#         return dias * obj.vehiculo.precio_por_dia
+#
+# # ---------------------------------------------------------------
+#     def validate(self, data):
+#         fecha_inicio = data.get('fecha_inicio')
+#         fecha_fin = data.get('fecha_fin')
+#         vehiculo = data.get('vehiculo')
+#
+#         # Validar que La fecha de inicio debe ser anterior a la fecha de fin
+#         if fecha_inicio and fecha_fin and fecha_inicio >= fecha_fin:
+#             raise serializers.ValidationError("La fecha de inicio debe ser anterior a la fecha de fin.")
+#
+#         # Validar que el vehículo no esté reservado o alquilado en ese rango de fechas
+#         if vehiculo and fecha_inicio and fecha_fin:
+#             reservas_conflictivas = Reserva.objects.filter(
+#                 vehiculo=vehiculo,
+#                 estado__in=['pendiente', 'confirmada'],
+#                 fecha_inicio__lt=fecha_fin,
+#                 fecha_fin__gt=fecha_inicio
+#             ).exclude(id=self.instance.id if self.instance else None)
+#
+#             if reservas_conflictivas.exists():
+#                 raise serializers.ValidationError("El vehículo ya tiene una reserva en ese rango de fechas.")
+#
+#             alquileres_conflictivos = Alquiler.objects.filter(
+#                 vehiculo=vehiculo,
+#                 estado__in=['pendiente', 'activo'],
+#                 fecha_inicio__lt=fecha_fin,
+#                 fecha_fin__gt=fecha_inicio
+#             )
+#
+#             if alquileres_conflictivos.exists():
+#                 raise serializers.ValidationError("El vehículo ya está alquilado en ese rango de fechas.")
+#
+#         return data
+#
+#     def calculate_monto_total(self, vehiculo, fecha_inicio, fecha_fin):
+#         dias = (fecha_fin - fecha_inicio).days
+#         if dias < 1:
+#             dias = 1  # Por si hay error o alquiler por 1 día
+#         return Decimal(dias) * vehiculo.precio_por_dia
+#
+#     def get_monto_usd(self, obj):
+#         tipo_cambio = obtener_precio_dolar_blue()
+#         if tipo_cambio and obj.monto_total:
+#             return round(obj.monto_total / tipo_cambio, 2)
+#         return "Valor del dólar no disponible"
+#
+#     def create(self, validated_data):
+#         monto_total = self.calculate_monto_total(
+#             validated_data['vehiculo'],
+#             validated_data['fecha_inicio'],
+#             validated_data['fecha_fin']
+#         )
+#         validated_data['monto_total'] = monto_total
+#         return super().create(validated_data)
+#
+#     def update(self, instance, validated_data):
+#         # Solo recalcular si se cambió alguna fecha o el vehículo
+#         fecha_inicio = validated_data.get('fecha_inicio', instance.fecha_inicio)
+#         fecha_fin = validated_data.get('fecha_fin', instance.fecha_fin)
+#         vehiculo = validated_data.get('vehiculo', instance.vehiculo)
+#
+#         validated_data['monto_total'] = self.calculate_monto_total(vehiculo, fecha_inicio, fecha_fin)
+#         return super().update(instance, validated_data)
+
+
+
+
+
+#
+#
+# class AlquilerSerializer(serializers.ModelSerializer):
+#     cliente_nombre = serializers.CharField(source='cliente.username', read_only=True)
+#     vehiculo_info = serializers.SerializerMethodField()
+#     sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
+#     monto_total = serializers.SerializerMethodField()
+#     monto_usd = serializers.SerializerMethodField()
+#
+#     class Meta:
+#         model = Alquiler
+#         fields = [
+#             'id',
+#             'cliente',
+#             'cliente_nombre',
+#             'vehiculo',
+#             'vehiculo_info',
+#             'sucursal',
+#             'sucursal_nombre',
+#             'fecha_inicio',
+#             'fecha_fin',
+#             'monto_total',
+#             'monto_usd',
+#             'estado',
+#         ]
+#
+#     def get_vehiculo_info(self, obj):
+#         return f"{obj.vehiculo.modelo.marca.nombre} {obj.vehiculo.modelo.nombre} - {obj.vehiculo.patente}"
+#
+#     def get_monto_total(self, obj):
+#         # Si monto_total guardado es > 0, devuelve ese valor, si no lo calcula
+#         if obj.monto_total and obj.monto_total > 0:
+#             return obj.monto_total
+#         else:
+#             dias = (obj.fecha_fin - obj.fecha_inicio).days + 1
+#             return dias * obj.vehiculo.precio_por_dia
+#
+#     def get_monto_usd(self, obj):
+#         tipo_cambio = obtener_precio_dolar_blue()
+#         if tipo_cambio and obj.monto_total:
+#             return round(obj.monto_total / tipo_cambio, 2)
+#         return "Valor del dólar no disponible"
+#
+#
+#     def validate(self, data):
+#         fecha_inicio = data['fecha_inicio']
+#         fecha_fin = data['fecha_fin']
+#         vehiculo = data['vehiculo']
+#
+#
+#         # Validación: fecha de inicio < fecha de fin
+#         if fecha_inicio >= fecha_fin:
+#             raise serializers.ValidationError("La fecha de inicio debe ser anterior a la fecha de fin.")
+#
+#         # Validación: el vehículo no está alquilado en ese rango
+#         alquileres_superpuestos = Alquiler.objects.filter(
+#             vehiculo=vehiculo,
+#             fecha_fin__gt=fecha_inicio,
+#             fecha_inicio__lt=fecha_fin
+#         )
+#         if self.instance:
+#             alquileres_superpuestos = alquileres_superpuestos.exclude(id=self.instance.id)
+#
+#         if alquileres_superpuestos.exists():
+#             raise serializers.ValidationError("El vehículo ya está alquilado en esas fechas.")
+#
+#         # Validación: el vehículo no está reservado en ese rango
+#         reservas_superpuestas = Reserva.objects.filter(
+#             vehiculo=vehiculo,
+#             estado__in=['pendiente', 'confirmada'],
+#             fecha_fin__gt=fecha_inicio,
+#             fecha_inicio__lt=fecha_fin
+#         )
+#
+#         if reservas_superpuestas.exists():
+#             raise serializers.ValidationError("El vehículo ya está reservado en esas fechas.")
+#
+#         return data
+#
+#
+#     def create(self, validated_data):
+#         dias = (validated_data['fecha_fin'] - validated_data['fecha_inicio']).days
+#         dias = dias if dias > 0 else 1
+#         precio_diario = validated_data['vehiculo'].precio_diario
+#         validated_data['monto_total'] = dias * precio_diario
+#         return super().create(validated_data)
+
+
+class AlquilerSerializer(serializers.ModelSerializer):
     cliente_nombre = serializers.CharField(source='cliente.username', read_only=True)
     vehiculo_info = serializers.SerializerMethodField()
     sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
-    #monto_total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     monto_total = serializers.SerializerMethodField()
+    monto_usd = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Alquiler
+        fields = [
+            'id',
+            'cliente',
+            'cliente_nombre',
+            'vehiculo',
+            'vehiculo_info',
+            'sucursal',
+            'sucursal_nombre',
+            'fecha_inicio',
+            'fecha_fin',
+            'monto_total',
+            'monto_usd',
+            'estado',
+        ]
+        extra_kwargs = {
+            'sucursal': {'required': False},  # Permitimos que sea opcional
+        }
+
+    def get_vehiculo_info(self, obj):
+        return f"{obj.vehiculo.modelo.marca.nombre} {obj.vehiculo.modelo.nombre} - {obj.vehiculo.patente}"
+
+    def get_monto_total(self, obj):
+        if obj.monto_total and obj.monto_total > 0:
+            return obj.monto_total
+        dias = (obj.fecha_fin - obj.fecha_inicio).days
+        if dias < 1:
+            dias = 1
+        return dias * obj.vehiculo.precio_por_dia
+
+    def get_monto_usd(self, obj):
+        tipo_cambio = obtener_precio_dolar_blue()
+        if tipo_cambio and obj.monto_total:
+            return round(obj.monto_total / tipo_cambio, 2)
+        return "Valor del dólar no disponible"
+
+    def validate(self, data):
+        fecha_inicio = data['fecha_inicio']
+        fecha_fin = data['fecha_fin']
+        vehiculo = data['vehiculo']
+
+        if fecha_inicio >= fecha_fin:
+            raise serializers.ValidationError("La fecha de inicio debe ser anterior a la fecha de fin.")
+
+        alquileres_superpuestos = Alquiler.objects.filter(
+            vehiculo=vehiculo,
+            fecha_fin__gt=fecha_inicio,
+            fecha_inicio__lt=fecha_fin
+        )
+        if self.instance:
+            alquileres_superpuestos = alquileres_superpuestos.exclude(id=self.instance.id)
+
+        if alquileres_superpuestos.exists():
+            raise serializers.ValidationError("El vehículo ya está alquilado en esas fechas.")
+
+        reservas_superpuestas = Reserva.objects.filter(
+            vehiculo=vehiculo,
+            estado__in=['pendiente', 'confirmada'],
+            fecha_fin__gt=fecha_inicio,
+            fecha_inicio__lt=fecha_fin
+        )
+
+        if reservas_superpuestas.exists():
+            raise serializers.ValidationError("El vehículo ya está reservado en esas fechas.")
+
+        return data
+
+
+    def create(self, validated_data):
+        vehiculo = validated_data['vehiculo']
+        validated_data['sucursal'] = validated_data.get('sucursal') or vehiculo.sucursal
+
+        dias = (validated_data['fecha_fin'] - validated_data['fecha_inicio']).days
+        dias = dias if dias > 0 else 1
+        precio_diario = vehiculo.precio_por_dia
+        validated_data['monto_total'] = dias * precio_diario
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        fecha_inicio = validated_data.get('fecha_inicio', instance.fecha_inicio)
+        fecha_fin = validated_data.get('fecha_fin', instance.fecha_fin)
+        vehiculo = validated_data.get('vehiculo', instance.vehiculo)
+
+        dias = (fecha_fin - fecha_inicio).days
+        dias = dias if dias > 0 else 1
+        precio_diario = vehiculo.precio_por_dia
+        validated_data['monto_total'] = dias * precio_diario
+
+        if 'sucursal' not in validated_data:
+            validated_data['sucursal'] = vehiculo.sucursal
+
+        return super().update(instance, validated_data)
+
+
+class ReservaSerializer(serializers.ModelSerializer):
+    cliente_nombre = serializers.CharField(source='cliente.username', read_only=True)
+    vehiculo_info = serializers.SerializerMethodField()
+    sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
+    monto_total = serializers.SerializerMethodField()
+    monto_usd = serializers.SerializerMethodField()
+
     class Meta:
         model = Reserva
         fields = [
@@ -795,35 +1107,38 @@ class ReservaSerializer(serializers.ModelSerializer):
             'fecha_inicio',
             'fecha_fin',
             'monto_total',
+            'monto_usd',
             'estado',
         ]
+        extra_kwargs = {
+            'sucursal': {'required': False},  # Permitimos que sea opcional
+        }
 
     def get_vehiculo_info(self, obj):
         return f"{obj.vehiculo.modelo.marca.nombre} {obj.vehiculo.modelo.nombre} - {obj.vehiculo.patente}"
 
-#----------------------------------------en caso de tener campos agregados antes-----------------------
     def get_monto_total(self, obj):
-        # Si ya tiene un total distinto de cero, mostrarlo
         if obj.monto_total and obj.monto_total > 0:
             return obj.monto_total
-
-        # Si el monto es cero, lo calculamos
         dias = (obj.fecha_fin - obj.fecha_inicio).days
         if dias < 1:
             dias = 1
         return dias * obj.vehiculo.precio_por_dia
 
-# ---------------------------------------------------------------
+    def get_monto_usd(self, obj):
+        tipo_cambio = obtener_precio_dolar_blue()
+        if tipo_cambio and obj.monto_total:
+            return round(obj.monto_total / tipo_cambio, 2)
+        return "Valor del dólar no disponible"
+
     def validate(self, data):
         fecha_inicio = data.get('fecha_inicio')
         fecha_fin = data.get('fecha_fin')
         vehiculo = data.get('vehiculo')
 
-        # Validar que La fecha de inicio debe ser anterior a la fecha de fin
         if fecha_inicio and fecha_fin and fecha_inicio >= fecha_fin:
             raise serializers.ValidationError("La fecha de inicio debe ser anterior a la fecha de fin.")
 
-        # Validar que el vehículo no esté reservado o alquilado en ese rango de fechas
         if vehiculo and fecha_inicio and fecha_fin:
             reservas_conflictivas = Reserva.objects.filter(
                 vehiculo=vehiculo,
@@ -850,101 +1165,31 @@ class ReservaSerializer(serializers.ModelSerializer):
     def calculate_monto_total(self, vehiculo, fecha_inicio, fecha_fin):
         dias = (fecha_fin - fecha_inicio).days
         if dias < 1:
-            dias = 1  # Por si hay error o alquiler por 1 día
+            dias = 1
         return Decimal(dias) * vehiculo.precio_por_dia
 
     def create(self, validated_data):
-        monto_total = self.calculate_monto_total(
-            validated_data['vehiculo'],
-            validated_data['fecha_inicio'],
-            validated_data['fecha_fin']
+        vehiculo = validated_data['vehiculo']
+        validated_data['sucursal'] = validated_data.get('sucursal') or vehiculo.sucursal
+        validated_data['monto_total'] = self.calculate_monto_total(
+            vehiculo, validated_data['fecha_inicio'], validated_data['fecha_fin']
         )
-        validated_data['monto_total'] = monto_total
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
-        # Solo recalcular si se cambió alguna fecha o el vehículo
         fecha_inicio = validated_data.get('fecha_inicio', instance.fecha_inicio)
         fecha_fin = validated_data.get('fecha_fin', instance.fecha_fin)
         vehiculo = validated_data.get('vehiculo', instance.vehiculo)
-
         validated_data['monto_total'] = self.calculate_monto_total(vehiculo, fecha_inicio, fecha_fin)
+
+        if 'sucursal' not in validated_data:
+            validated_data['sucursal'] = vehiculo.sucursal
+
         return super().update(instance, validated_data)
 
-class AlquilerSerializer(serializers.ModelSerializer):
-    cliente_nombre = serializers.CharField(source='cliente.username', read_only=True)
-    vehiculo_info = serializers.SerializerMethodField()
-    sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
-    monto_total = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Alquiler
-        fields = [
-            'id',
-            'cliente',
-            'cliente_nombre',
-            'vehiculo',
-            'vehiculo_info',
-            'sucursal',
-            'sucursal_nombre',
-            'fecha_inicio',
-            'fecha_fin',
-            'monto_total',
-            'estado',
-        ]
-
-    def get_vehiculo_info(self, obj):
-        return f"{obj.vehiculo.modelo.marca.nombre} {obj.vehiculo.modelo.nombre} - {obj.vehiculo.patente}"
-
-    def get_monto_total(self, obj):
-        # Si monto_total guardado es > 0, devuelve ese valor, si no, calcula al vuelo
-        if obj.monto_total and obj.monto_total > 0:
-            return obj.monto_total
-        else:
-            dias = (obj.fecha_fin - obj.fecha_inicio).days + 1
-            return dias * obj.vehiculo.precio_por_dia
-
-    def validate(self, data):
-        fecha_inicio = data['fecha_inicio']
-        fecha_fin = data['fecha_fin']
-        vehiculo = data['vehiculo']
-
-        # Validación: fecha de inicio < fecha de fin
-        if fecha_inicio >= fecha_fin:
-            raise serializers.ValidationError("La fecha de inicio debe ser anterior a la fecha de fin.")
-
-        # Validación: el vehículo no está alquilado en ese rango
-        alquileres_superpuestos = Alquiler.objects.filter(
-            vehiculo=vehiculo,
-            fecha_fin__gt=fecha_inicio,
-            fecha_inicio__lt=fecha_fin
-        )
-        if self.instance:
-            alquileres_superpuestos = alquileres_superpuestos.exclude(id=self.instance.id)
-
-        if alquileres_superpuestos.exists():
-            raise serializers.ValidationError("El vehículo ya está alquilado en esas fechas.")
-
-        # Validación: el vehículo no está reservado en ese rango
-        reservas_superpuestas = Reserva.objects.filter(
-            vehiculo=vehiculo,
-            estado__in=['pendiente', 'confirmada'],
-            fecha_fin__gt=fecha_inicio,
-            fecha_inicio__lt=fecha_fin
-        )
-
-        if reservas_superpuestas.exists():
-            raise serializers.ValidationError("El vehículo ya está reservado en esas fechas.")
-
-        return data
 
 
-    def create(self, validated_data):
-        dias = (validated_data['fecha_fin'] - validated_data['fecha_inicio']).days
-        dias = dias if dias > 0 else 1
-        precio_diario = validated_data['vehiculo'].precio_diario
-        validated_data['monto_total'] = dias * precio_diario
-        return super().create(validated_data)
+
 
 # class AlquilerSerializer(serializers.ModelSerializer):
 #     cliente_nombre = serializers.CharField(source='cliente.username', read_only=True)

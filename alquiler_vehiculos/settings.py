@@ -10,10 +10,18 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+
+
 from pathlib import Path
+
+from apps import alquiler
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+import sys
+import os
+sys.path.append(os.path.join(BASE_DIR, 'apps'))
 
 
 # Quick-start development settings - unsuitable for production
@@ -39,6 +47,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'rest_framework',
+    'rest_framework_simplejwt',
+
     'django_filters',
 
     'apps.alquiler',
@@ -61,7 +71,8 @@ ROOT_URLCONF = 'alquiler_vehiculos.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        #'DIRS': [],
+        'DIRS': [BASE_DIR / 'apps/alquiler/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -122,6 +133,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [ BASE_DIR / 'apps/alquiler/static' ]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -162,8 +174,46 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20, #cantidad que se va a mostrar por pagina
 
 
+#---------------------------------------RENDERIZADO-------------------------------#
+# DEFAULT_RENDERER_CLASSES se configura el conjunto predeterminado de             #
+# renderizadores (es decir, el formato de la respuesta que se envía al cliente).  #
+#---------------------------------------------------------------------------------#
+
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer'
+    ],
+
+
+#-----------------------------AUTENTICACION------------------------------#
+#                                     JWT                                #
+#------------------------------------------------------------------------#
+    #
+    # 'DEFAULT_AUTHENTICATION_CLASSES': (
+    #     'rest_framework_simplejwt.authentication.JWTAuthentication',
+    # ),
+
+#-----------------------------AUTORIZACION-------------------------------#
+#                                                                        #
+#------------------------------------------------------------------------#
+    # 'DEFAULT_PERMISSION_CLASSES': [
+    #     'rest_framework.permissions.DjangoModelPermissions',
+    # ],
+
+
+    # 'DEFAULT_PERMISSION_CLASSES': [
+    #       'alquiler_vehiculos.permissions.StrictModelPermissions',
+    # ],
+
 
 } #termina rest framework
+
+
+SIMPLE_JWT = {
+    'SIGNING_KEY': SECRET_KEY, # Presente por defecto en settings
+    'ALGORITHM': 'HS256', # Algoritmo de firma
+}
+
 
 
 #para mostrar los menajes de error en español

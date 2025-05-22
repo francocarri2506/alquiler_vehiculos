@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - JWT</title>
+  <script>
+    async function login(event) {
+      event.preventDefault();
+
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+
+      const response = await fetch("http://localhost:8000/api/token/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem("access_token", data.access);
+        localStorage.setItem("refresh_token", data.refresh);
+        document.getElementById("resultado").innerText = "✅ Login exitoso.";
+      } else {
+        document.getElementById("resultado").innerText = `❌ Error: ${data.detail || "credenciales inválidas"}`;
+      }
+    }
+
+    function verToken() {
+      const token = localStorage.getItem("access_token");
+      alert(token ? `Token JWT: ${token}` : "No hay token guardado.");
+    }
+  </script>
+</head>
+<body>
+  <h1>Iniciar sesión</h1>
+  <form onsubmit="login(event)">
+    <label>Usuario: <input type="text" id="username" required></label><br><br>
+    <label>Contraseña: <input type="password" id="password" required></label><br><br>
+    <button type="submit">Login</button>
+  </form>
+  <p id="resultado"></p>
+  <button onclick="verToken()">Ver token JWT</button>
+</body>
+</html>
+
+
+
+

@@ -16,13 +16,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 #from apps.alquiler.api.v1.apiview import VehiculoListCreateAPIView, VehiculoRetrieveUpdateDestroyAPIView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
    # path('api/<str:version>/', include('apps.alquiler.api.urls')),
-    path('api/v1/', include('apps.alquiler.api.v1.urls')),
+    path('api/v1/', include('apps.alquiler.api.v1.urls')), # Para API REST
     #path('api/v2/', include('apps.alquiler.api.v2.urls')),#copia exacta de v1 solo con viewset
 
 
@@ -30,6 +31,16 @@ urlpatterns = [
    # path("vehiculos/", VehiculoListCreateAPIView.as_view(), name="vehiculo-list-create"),
    # path("vehiculos/<uuid:pk>/", VehiculoRetrieveUpdateDestroyAPIView.as_view(), name="vehiculo-detail"),
 
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    path('api-auth/', include('rest_framework.urls')),# para loguearce
+
+
+    path('html/', include('apps.alquiler.urls_html')),  # Para vistas HTML tradicionales
+
+
 ]
+
 
 

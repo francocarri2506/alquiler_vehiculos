@@ -28,7 +28,6 @@ class SucursalViewSet(viewsets.ModelViewSet):
     ordering_fields = ['nombre']
     ordering = ['nombre']
 
-
 class MarcaViewSet(viewsets.ModelViewSet):
     queryset = Marca.objects.all()
     serializer_class = MarcaSerializer
@@ -63,7 +62,7 @@ class ModeloVehiculoViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def asignar_tipo(self, request, pk=None):
-        """Permite cambiar el tipo de vehículo asociado a un modelo (operación extra al CRUD)."""
+        """Permite cambiar el tipo de vehículo asociado a un modelo"""
         modelo = self.get_object()
         nuevo_tipo_id = request.data.get('tipo_id')
 
@@ -85,13 +84,13 @@ class ModeloVehiculoViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-
 #-------------------------MEJORA EN MODELOS-------------------------------#
 #                                                                        #
 #------------------------------------------------------------------------#
 
 class VehiculoViewSet(viewsets.ModelViewSet):
-    queryset = Vehiculo.objects.all()
+    queryset = Vehiculo.objects.all().order_by('id')
+    #queryset = Vehiculo.objects.all()
     serializer_class = VehiculoSerializer
 
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
@@ -349,6 +348,12 @@ class ReservaViewSet(viewsets.ModelViewSet):
     queryset = Reserva.objects.all()
     serializer_class = ReservaSerializer
 
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['estado', 'sucursal', 'cliente']
+    search_fields = ['cliente__username', 'vehiculo__patente']
+    ordering_fields = ['fecha_inicio', 'fecha_fin', 'monto_total']
+    ordering = ['fecha_inicio']
+
     @action(detail=True, methods=['post'])
     def confirmar(self, request, pk=None):
         reserva = self.get_object()
@@ -364,7 +369,7 @@ class ReservaViewSet(viewsets.ModelViewSet):
             sucursal=reserva.sucursal,
             fecha_inicio=reserva.fecha_inicio,
             fecha_fin=reserva.fecha_fin,
-            monto_total=reserva.monto_total,  # Esto se puede recalcular luego si es necesario
+            monto_total=reserva.monto_total,
             estado='activo'
         )
 
@@ -380,6 +385,38 @@ class ReservaViewSet(viewsets.ModelViewSet):
         }, status=status.HTTP_201_CREATED)
 
 
+    # @action(detail=True, methods=['post'], url_path='confirmar')
+    # def confirmar_reserva(self, request, pk=None):
+    #     reserva = self.get_object()
+    #
+    #     if reserva.estado != 'pendiente':
+    #         return Response({'error': 'Solo se pueden confirmar reservas pendientes.'},
+    #                         status=status.HTTP_400_BAD_REQUEST)
+    #
+    #     # Crear el alquiler basado en la reserva
+    #     alquiler = Alquiler.objects.create(
+    #         cliente=reserva.cliente,
+    #         vehiculo=reserva.vehiculo,
+    #         sucursal=reserva.sucursal,
+    #         fecha_inicio=reserva.fecha_inicio,
+    #         fecha_fin=reserva.fecha_fin,
+    #         monto_total=reserva.monto_total,
+    #         estado='activo'
+    #     )
+    #
+    #     # Actualizar estado de la reserva y vehículo
+    #     reserva.estado = 'confirmada'
+    #     reserva.save()
+    #     vehiculo = reserva.vehiculo
+    #     vehiculo.estado = 'alquilado'
+    #     vehiculo.save()
+    #
+    #     return Response({
+    #         'mensaje': 'Reserva confirmada y alquiler generado exitosamente.',
+    #         'alquiler_id': alquiler.id
+    #     }, status=status.HTTP_201_CREATED)
+
+
 class AlquilerViewSet(viewsets.ModelViewSet):
     queryset = Alquiler.objects.all()
     serializer_class = AlquilerSerializer
@@ -387,6 +424,7 @@ class AlquilerViewSet(viewsets.ModelViewSet):
     filterset_fields = ['estado', 'vehiculo', 'cliente']
     search_fields = ['vehiculo__patente', 'cliente__username']
     ordering_fields = ['fecha_inicio', 'fecha_fin', 'monto_total']
+    ordering = ['fecha_inicio']
 
     def perform_create(self, serializer):
         serializer.save()
@@ -441,6 +479,7 @@ class AlquilerViewSet(viewsets.ModelViewSet):
         alquiler.estado = nuevo_estado
         alquiler.save()
         return Response({'mensaje': f'Estado actualizado a {nuevo_estado}'}, status=status.HTTP_200_OK)
+
 
 
 # class ReservaViewSet(viewsets.ModelViewSet):

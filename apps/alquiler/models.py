@@ -29,7 +29,6 @@ class TipoVehiculo(models.Model):
     def __str__(self):
         return self.descripcion
 
-
 """
 class Vehiculo(models.Model):
     ESTADO_CHOICES = [
@@ -55,11 +54,6 @@ class Vehiculo(models.Model):
 
 
 """
-
-
-
-
-
 
 #-------------------------MEJORA EN MODELOS-------------------------------#
 #                                                                         #
