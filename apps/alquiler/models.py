@@ -3,6 +3,9 @@ import uuid
 from django.db import models
 from django.conf import settings
 
+#---------------------------------MODELOS---------------------------------#
+#                                                                         #
+#-------------------------------------------------------------------------#
 
 class Sucursal(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -29,36 +32,10 @@ class TipoVehiculo(models.Model):
     def __str__(self):
         return self.descripcion
 
-"""
-class Vehiculo(models.Model):
-    ESTADO_CHOICES = [
-        ('disponible', 'Disponible'),
-        ('alquilado', 'Alquilado'),
-        ('mantenimiento', 'En mantenimiento'),
-        ('reservado', 'Reservado'),
-    ]
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    marca = models.ForeignKey(Marca, on_delete=models.CASCADE, related_name='vehiculos')
-    modelo = models.CharField(max_length=100)
-    patente = models.CharField(max_length=20, unique=True)
-    tipo = models.ForeignKey(TipoVehiculo, on_delete=models.SET_NULL, null=True)
-    año = models.PositiveIntegerField()
-    precio_por_dia = models.DecimalField(max_digits=10, decimal_places=2)
-    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='disponible')
-    sucursal = models.ForeignKey('Sucursal', on_delete=models.CASCADE, related_name='vehiculos')
-
-    def __str__(self):
-        return f"{self.marca.nombre} {self.modelo} ({self.patente})"
-
-
-
-"""
 
 #-------------------------MEJORA EN MODELOS-------------------------------#
 #                                                                         #
 #-------------------------------------------------------------------------#
-
 
 class ModeloVehiculo(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -82,6 +59,7 @@ class ModeloVehiculo(models.Model):
 
 
 class Vehiculo(models.Model):
+
     ESTADO_CHOICES = [
         ('disponible', 'Disponible'),
         ('alquilado', 'Alquilado'),
@@ -91,7 +69,6 @@ class Vehiculo(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     modelo = models.ForeignKey(ModeloVehiculo, on_delete=models.CASCADE, related_name='vehiculos')
-
     #modelo = models.ForeignKey(ModeloVehiculo, null=True, on_delete=models.SET_NULL)
     patente = models.CharField(max_length=20, unique=True)
     año = models.PositiveIntegerField()
@@ -169,6 +146,31 @@ class HistorialEstadoAlquiler(models.Model):
 
 
 
+"""
+#antes de tener modelos como un objeto
+
+# class Vehiculo(models.Model):
+#     ESTADO_CHOICES = [
+#         ('disponible', 'Disponible'),
+#         ('alquilado', 'Alquilado'),
+#         ('mantenimiento', 'En mantenimiento'),
+#         ('reservado', 'Reservado'),
+#     ]
+# 
+#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+#     marca = models.ForeignKey(Marca, on_delete=models.CASCADE, related_name='vehiculos')
+#     modelo = models.CharField(max_length=100)
+#     patente = models.CharField(max_length=20, unique=True)
+#     tipo = models.ForeignKey(TipoVehiculo, on_delete=models.SET_NULL, null=True)
+#     año = models.PositiveIntegerField()
+#     precio_por_dia = models.DecimalField(max_digits=10, decimal_places=2)
+#     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='disponible')
+#     sucursal = models.ForeignKey('Sucursal', on_delete=models.CASCADE, related_name='vehiculos')
+# 
+#     def __str__(self):
+#         return f"{self.marca.nombre} {self.modelo} ({self.patente})"
+
+"""
 
 """
 
