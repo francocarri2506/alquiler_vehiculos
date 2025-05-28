@@ -11,3 +11,4 @@ def obtener_precio_dolar_blue():
             return None
     except Exception as e:
         return None
+

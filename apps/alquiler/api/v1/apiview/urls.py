@@ -1,7 +1,10 @@
-from django.urls import path
-
+from django.urls import path, include
 
 from .apiview import *
+from ..georef_arg_views import ProvinciasAPIView, DepartamentosAPIView, LocalidadesAPIView
+
+
+
 
 urlpatterns = [
     path('sucursales/', SucursalListCreateAPIView.as_view()),
@@ -23,4 +26,18 @@ urlpatterns = [
     path('reservas/<int:pk>/', ReservaRetrieveUpdateDeleteAPIView.as_view()),
 
     path('alquileres/calcular-monto/', CalcularMontoAPIView.as_view(), name='calcular-monto'),
+
+
+    #para mostrar directamamente de la api externa
+    path('provincias/', ProvinciasAPIView.as_view(), name='provincias'),
+    # http://127.0.0.1:8000/api/v1/apiview/provincias/
+
+    path('departamentos/', DepartamentosAPIView.as_view(), name='departamentos'),
+    #http://127.0.0.1:8000/api/v1/apiview/departamentos/?provincia=Catamarca
+    path('localidades/', LocalidadesAPIView.as_view(), name='localidades'),
+    #http://127.0.0.1:8000/api/v1/apiview/localidades/?provincia=Catamarca&departamento=Santa María
+
+
+
+
 ]

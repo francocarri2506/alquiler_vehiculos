@@ -188,32 +188,42 @@ REST_FRAMEWORK = {
 #-----------------------------AUTENTICACION------------------------------#
 #                                     JWT                                #
 #------------------------------------------------------------------------#
-    #
-    # 'DEFAULT_AUTHENTICATION_CLASSES': (
-    #     'rest_framework_simplejwt.authentication.JWTAuthentication',
-    # ),
+
+     'DEFAULT_AUTHENTICATION_CLASSES': (
+         'rest_framework_simplejwt.authentication.JWTAuthentication',
+     ),
 
 #-----------------------------AUTORIZACION-------------------------------#
 #                                                                        #
 #------------------------------------------------------------------------#
-    # 'DEFAULT_PERMISSION_CLASSES': [
-    #     'rest_framework.permissions.DjangoModelPermissions',
-    # ],
+     #'DEFAULT_PERMISSION_CLASSES': [
+     #  'rest_framework.permissions.DjangoModelPermissions',
+     # ],
 
 
-    # 'DEFAULT_PERMISSION_CLASSES': [
-    #       'alquiler_vehiculos.permissions.StrictModelPermissions',
-    # ],
+     'DEFAULT_PERMISSION_CLASSES': [
+          'alquiler_vehiculos.permissions.StrictModelPermissions',
+     ],
+
 
 
 } #termina rest framework
+
+from datetime import timedelta
 
 
 SIMPLE_JWT = {
     'SIGNING_KEY': SECRET_KEY, # Presente por defecto en settings
     'ALGORITHM': 'HS256', # Algoritmo de firma
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),  # Cambia a lo que necesites
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
 }
 
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}
 
 
 #para mostrar los menajes de error en español

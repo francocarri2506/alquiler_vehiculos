@@ -155,8 +155,69 @@ class ModeloVehiculoViewSet(viewsets.ModelViewSet):
 #-------------------------------------------------------------------------#
 #                                VEHICULO                                 #
 #-------------------------------------------------------------------------#
+"""
+class VehiculoViewSet(viewsets.ModelViewSet):
+    queryset = Vehiculo.objects.all().order_by('id')
+    #queryset = Vehiculo.objects.all()
+    serializer_class = VehiculoSerializer
 
-######################################################probando los permisos:###############
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
+    filterset_fields = ['estado', 'sucursal', 'modelo__marca', 'modelo__tipo']
+    ordering_fields = ['año', 'precio_por_dia']
+    search_fields = ['patente', 'modelo__nombre', 'modelo__marca__nombre']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        sucursal_id = self.request.query_params.get('sucursal')
+        if sucursal_id:
+            queryset = queryset.filter(sucursal__id=sucursal_id)
+        return queryset
+
+    # def get_queryset(self):
+    #     queryset = super().get_queryset()
+    #
+    #     # Filtro por sucursal si se pasa
+    #     sucursal_id = self.request.query_params.get('sucursal')
+    #     if sucursal_id:
+    #         queryset = queryset.filter(sucursal__id=sucursal_id)
+    #
+    #     # Filtrar por estado 'disponible' solo si no se pasó explícitamente otro estado
+    #     if 'estado' not in self.request.query_params:
+    #         queryset = queryset.filter(estado='disponible')
+    #
+    #     return queryset
+
+
+######## revisar estos 2 actions antes de presentar, me parece que la logica no es la correcta
+
+    @action(detail=False, methods=['get'], url_path='disponibles_por_sucursal/(?P<sucursal_id>[0-9a-f-]+)')
+    def disponibles_por_sucursal(self, request, sucursal_id=None):
+        disponibles = Vehiculo.objects.filter(
+            sucursal__id=sucursal_id,
+            estado='disponible'
+        )
+        serializer = self.get_serializer(disponibles, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+    @action(detail=True, methods=['post'], url_path='reservar')
+    def reservar(self, request, pk=None):
+        vehiculo = self.get_object()
+        if vehiculo.estado != 'disponible':
+            return Response(
+                {"detalle": "El vehículo no está disponible para reservar."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        vehiculo.estado = 'reservado'
+        vehiculo.save()
+        return Response(
+            {"detalle": "Vehículo reservado correctamente."},
+            status=status.HTTP_200_OK
+        )
+"""
+
+######probando los permisos:
 from django.utils.timezone import now
 
 class VehiculoViewSet(viewsets.ModelViewSet):
@@ -546,7 +607,7 @@ class ReservaViewSet(viewsets.ModelViewSet):
 class ReservaViewSet(viewsets.ModelViewSet):
     queryset = Reserva.objects.all()
     serializer_class = ReservaSerializer
-    permission_classes = [IsAuthenticated, DjangoModelPermissions]
+    permission_classes = [IsAuthenticated, DjangoModelPermissions]  # 👈 incluye permisos
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['estado', 'sucursal', 'cliente']
@@ -558,7 +619,7 @@ class ReservaViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_staff:
             return Reserva.objects.all()
-        return Reserva.objects.filter(cliente=user)  #  solo puede ver sus reservas
+        return Reserva.objects.filter(cliente=user)  #  solo  puede ver sus reservas
 
     def perform_create(self, serializer):
         user = self.request.user

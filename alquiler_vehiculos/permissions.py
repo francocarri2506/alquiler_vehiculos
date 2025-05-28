@@ -11,3 +11,14 @@ class StrictModelPermissions(DjangoModelPermissions):
         'DELETE': ['%(app_label)s.delete_%(model_name)s'],
     }
 
+from rest_framework.permissions import BasePermission, SAFE_METHODS
+
+class EsPropietarioOAdmin(BasePermission):
+    """
+    Permite acceso solo al propietario de la reserva o al admin.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        if request.user.is_staff:
+            return True
+        return obj.cliente == request.user
