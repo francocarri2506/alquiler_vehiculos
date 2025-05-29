@@ -11,14 +11,16 @@ from apps.alquiler.api.v1.viewset import (
 
 
 
-# Router para ViewSet
+# inicializar el Router DRF para ViewSet una sola vez
 router = DefaultRouter()
+
+#Registrar un viewset
+
 router.register(r'sucursales', SucursalViewSet)
 router.register(r'marcas', MarcaViewSet)
 router.register(r'tipos', TipoVehiculoViewSet)
 router.register(r'modelos', ModeloVehiculoViewSet)
 router.register(r'vehiculos', VehiculoViewSet)
-#router.register(r'alquileres', AlquilerViewSet)
 router.register(r'alquileres', AlquilerViewSet, basename='alquiler')
 router.register(r'reservas', ReservaViewSet)
 router.register(r'historial-alquileres', HistorialEstadoAlquilerViewSet, basename='historial-alquiler')

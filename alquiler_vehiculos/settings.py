@@ -54,6 +54,8 @@ INSTALLED_APPS = [
     'apps.alquiler',
     'apps.usuario',
 
+    'drf_spectacular',
+
 ]
 
 MIDDLEWARE = [
@@ -171,7 +173,7 @@ REST_FRAMEWORK = {
 #------------------------------------------------------------------------#
 
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20, #cantidad que se va a mostrar por pagina
+    'PAGE_SIZE': 10, #cantidad que se va a mostrar por pagina
 
 
 #---------------------------------------RENDERIZADO-------------------------------#
@@ -196,15 +198,19 @@ REST_FRAMEWORK = {
 #-----------------------------AUTORIZACION-------------------------------#
 #                                                                        #
 #------------------------------------------------------------------------#
-     #'DEFAULT_PERMISSION_CLASSES': [
-     #  'rest_framework.permissions.DjangoModelPermissions',
-     # ],
+    #'DEFAULT_PERMISSION_CLASSES': [
+    #  'rest_framework.permissions.DjangoModelPermissions',
+    #  ],
 
 
-     'DEFAULT_PERMISSION_CLASSES': [
-          'alquiler_vehiculos.permissions.StrictModelPermissions',
-     ],
+      'DEFAULT_PERMISSION_CLASSES': [
+           'alquiler_vehiculos.permissions.StrictModelPermissions',
+      ],
 
+#-----------------------------DOCUMENTACION-------------------------------#
+#                                                                        #
+#------------------------------------------------------------------------#
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 
 
 } #termina rest framework
@@ -215,7 +221,7 @@ from datetime import timedelta
 SIMPLE_JWT = {
     'SIGNING_KEY': SECRET_KEY, # Presente por defecto en settings
     'ALGORITHM': 'HS256', # Algoritmo de firma
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),  # Cambia a lo que necesites
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=45),  # tiempo del token
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
 }
 

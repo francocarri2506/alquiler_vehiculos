@@ -23,9 +23,9 @@
       if (response.ok) {
         localStorage.setItem("access_token", data.access);
         localStorage.setItem("refresh_token", data.refresh);
-        document.getElementById("resultado").innerText = "✅ Login exitoso.";
+        document.getElementById("resultado").innerText = "Login exitoso.";
       } else {
-        document.getElementById("resultado").innerText = `❌ Error: ${data.detail || "credenciales inválidas"}`;
+        document.getElementById("resultado").innerText = ` Error: ${data.detail || "credenciales inválidas"}`;
       }
     }
 
@@ -46,6 +46,10 @@
   <button onclick="verToken()">Ver token JWT</button>
 </body>
 </html>
+
+
+
+
 
 
 

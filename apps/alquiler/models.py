@@ -1,11 +1,10 @@
-
+#---------------------------------MODELOS---------------------------------#
+#                                                                         #
+#-------------------------------------------------------------------------#
 import uuid
 from django.db import models
 from django.conf import settings
 
-#---------------------------------MODELOS---------------------------------#
-#                                                                         #
-#-------------------------------------------------------------------------#
 
 class Sucursal(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -32,10 +31,6 @@ class TipoVehiculo(models.Model):
     def __str__(self):
         return self.descripcion
 
-
-#-------------------------MEJORA EN MODELOS-------------------------------#
-#                                                                         #
-#-------------------------------------------------------------------------#
 
 class ModeloVehiculo(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -88,10 +83,6 @@ class Vehiculo(models.Model):
         return self.modelo.tipo
 
 
-#-------------------------MEJORA EN MODELOS-------------------------------#
-#                                                                         #
-#-------------------------------------------------------------------------#
-
 
 class Alquiler(models.Model):
     ESTADO_CHOICES = [
@@ -133,19 +124,6 @@ class Reserva(models.Model):
         return f"Reserva {self.id} - {self.cliente}"
 
 
-class HistorialEstadoAlquiler(models.Model):
-    alquiler = models.ForeignKey(Alquiler, on_delete=models.CASCADE, related_name='historial_estados')
-    estado_anterior = models.CharField(max_length=20)
-    estado_nuevo = models.CharField(max_length=20)
-    fecha_cambio = models.DateTimeField(auto_now_add=True)
-    #cambiado_por = models.ForeignKey('Usuario', on_delete=models.SET_NULL, null=True, blank=True)
-    cambiado_por = models.ForeignKey('usuario.Usuario', on_delete=models.SET_NULL, null=True, blank=True)
-
-    def __str__(self):
-        return f"{self.alquiler.id} | {self.estado_anterior} → {self.estado_nuevo} ({self.fecha_cambio})"
-
-
-
 """
 #antes de tener modelos como un objeto
 
@@ -172,8 +150,18 @@ class HistorialEstadoAlquiler(models.Model):
 
 """
 
-"""
+class HistorialEstadoAlquiler(models.Model):
+    alquiler = models.ForeignKey(Alquiler, on_delete=models.CASCADE, related_name='historial_estados')
+    estado_anterior = models.CharField(max_length=20)
+    estado_nuevo = models.CharField(max_length=20)
+    fecha_cambio = models.DateTimeField(auto_now_add=True)
+    #cambiado_por = models.ForeignKey('Usuario', on_delete=models.SET_NULL, null=True, blank=True)
+    cambiado_por = models.ForeignKey('usuario.Usuario', on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.alquiler.id} | {self.estado_anterior} → {self.estado_nuevo} ({self.fecha_cambio})"
 
 
-"""
+
+
 
