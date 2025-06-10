@@ -11,7 +11,7 @@ from .filters import ModeloVehiculoFilter
 from .serializers import (
     SucursalSerializer, MarcaSerializer, TipoVehiculoSerializer,
     VehiculoSerializer, AlquilerSerializer, ReservaSerializer, HistorialEstadoAlquilerSerializer,
-    ModeloVehiculoSerializer, GEORREF_BASE
+    ModeloVehiculoSerializer, SucursalCreateSerializer
 )
 
 from rest_framework.decorators import action
@@ -29,14 +29,29 @@ from datetime import datetime, date
 #                             SUCURSAL                                    #
 #-------------------------------------------------------------------------#
 
+# class SucursalViewSet(viewsets.ModelViewSet):
+#     queryset = Sucursal.objects.all()
+#     serializer_class = SucursalSerializer
+#     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+#     filterset_fields = ['nombre', 'provincia', 'departamento', 'localidad']
+#     search_fields = ['nombre', 'direccion']
+#     ordering_fields = ['nombre']
+#     ordering = ['nombre']
+#
+#
+
 class SucursalViewSet(viewsets.ModelViewSet):
     queryset = Sucursal.objects.all()
-    serializer_class = SucursalSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['nombre', 'provincia', 'departamento', 'localidad']
     search_fields = ['nombre', 'direccion']
     ordering_fields = ['nombre']
     ordering = ['nombre']
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return SucursalCreateSerializer
+        return SucursalSerializer
 
 
 

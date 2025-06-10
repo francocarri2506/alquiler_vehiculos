@@ -4,18 +4,102 @@
 import uuid
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
+
+
+class Provincia(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.nombre
+
+
+class Departamento(models.Model):
+    nombre = models.CharField(max_length=100)
+    provincia = models.ForeignKey(Provincia, on_delete=models.CASCADE, related_name='departamentos')
+
+    class Meta:
+        unique_together = ('nombre', 'provincia')
+
+    def __str__(self):
+        return f"{self.nombre} ({self.provincia})"
+
+
+class Localidad(models.Model):
+    nombre = models.CharField(max_length=100)
+    departamento = models.ForeignKey(Departamento, on_delete=models.CASCADE, related_name='localidades')
+
+    class Meta:
+        unique_together = ('nombre', 'departamento')
+
+    def __str__(self):
+        return f"{self.nombre} ({self.departamento})"
 
 
 class Sucursal(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nombre = models.CharField(max_length=100)
-    provincia = models.CharField(max_length=100)
-    departamento = models.CharField(max_length=100)
-    localidad = models.CharField(max_length=100)
+
+    #Usamos PROTECT para evitar que se elimine una provincia, departamento o localidad si existen sucursales que dependen de ella.
+    provincia = models.ForeignKey(
+        'Provincia',
+        on_delete=models.PROTECT,
+        related_name='sucursales'
+    )
+
+    departamento = models.ForeignKey(
+        'Departamento',
+        on_delete=models.PROTECT,
+        related_name='sucursales'
+    )
+
+    localidad = models.ForeignKey(
+        'Localidad',
+        on_delete=models.PROTECT,
+        related_name='sucursales'
+    )
+
     direccion = models.TextField()
 
     def __str__(self):
         return f"{self.nombre} - {self.localidad}, {self.provincia}"
+
+    #validaciones en el MODELO, la validación se aplica siempre, sin importar si se usa el modelo
+    # desde un serializer, un formulario, un script, o el admin de Django
+
+    def clean(self):
+        # Validación jerárquica
+        if self.departamento.provincia != self.provincia:
+            raise ValidationError("El departamento no pertenece a la provincia indicada.")
+
+        if self.localidad.departamento != self.departamento:
+            raise ValidationError("La localidad no pertenece al departamento indicado.")
+
+        # Validación de duplicado
+        if Sucursal.objects.exclude(id=self.id).filter(
+            nombre__iexact=self.nombre.strip(),
+            provincia=self.provincia,
+            departamento=self.departamento,
+            localidad=self.localidad,
+            direccion=self.direccion.strip()
+        ).exists():
+            raise ValidationError("Ya existe una sucursal con el mismo nombre y ubicación geográfica.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+
+# class Sucursal(models.Model):
+#       id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+#       nombre = models.CharField(max_length=100)
+#       provincia = models.CharField(max_length=100)
+#       departamento = models.CharField(max_length=100)
+#       localidad = models.CharField(max_length=100)
+#       direccion = models.TextField()
+#
+#       def __str__(self):
+#           return f"{self.nombre} - {self.localidad}, {self.provincia}"
 
 class Marca(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -23,6 +107,8 @@ class Marca(models.Model):
 
     def __str__(self):
         return self.nombre
+
+
 
 class TipoVehiculo(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -160,6 +246,7 @@ class HistorialEstadoAlquiler(models.Model):
 
     def __str__(self):
         return f"{self.alquiler.id} | {self.estado_anterior} → {self.estado_nuevo} ({self.fecha_cambio})"
+
 
 
 

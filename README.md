@@ -16,7 +16,6 @@ El objetivo del sistema es permitir que una empresa de alquiler de vehículos pu
  	Gestionar la información de los clientes.
  	Registrar reservas y alquileres activos o finalizados.
  	Controlar la disponibilidad de los vehículos.
- 	Registrar el historial de alquileres.
 
 
 3. Requisitos Funcionales:

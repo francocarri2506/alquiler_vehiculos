@@ -11,6 +11,8 @@ from .mixins import RangoFechasVehiculoSerializerMixin
 from apps.alquiler.models import Sucursal, Marca, TipoVehiculo, Vehiculo, Alquiler, Reserva, HistorialEstadoAlquiler, \
     ModeloVehiculo
 
+from apps.alquiler.models import Provincia, Departamento, Localidad
+
 from datetime import datetime
 import re   #es un módulo de Python que permite trabajar con expresiones regulares (regex).
 
@@ -20,79 +22,81 @@ import requests
 from django.core.cache import cache  # opcional para cachear resultados
 
 
+
+
+
 #-------------------------------------------------------------------------#
 #                             SUCURSAL                                    #
 #-------------------------------------------------------------------------#
-GEORREF_BASE = "https://apis.datos.gob.ar/georef/api"
 class SucursalSerializer(serializers.ModelSerializer):
+    provincia_nombre = serializers.SerializerMethodField()
+    departamento_nombre = serializers.SerializerMethodField()
+    localidad_nombre = serializers.SerializerMethodField()
+
     class Meta:
         model = Sucursal
-        fields = '__all__'
+        fields = [
+            'id',
+            'nombre',
+            'provincia_nombre',
+            'departamento_nombre',
+            'localidad_nombre',
+            'direccion',
+        ]
 
-    def validate(self, data): #validate se ejecuta cuando se crea o actualiza una instancia del serializer
+    def get_provincia_nombre(self, obj):
+        return obj.provincia.nombre if obj.provincia else None
 
-        #con strip quito espacios al principio y al fin
+    def get_departamento_nombre(self, obj):
+        return obj.departamento.nombre if obj.departamento else None
+
+    def get_localidad_nombre(self, obj):
+        return obj.localidad.nombre if obj.localidad else None
+
+
+class SucursalCreateSerializer(serializers.ModelSerializer):
+    provincia = serializers.CharField()
+    departamento = serializers.CharField()
+    localidad = serializers.CharField()
+
+    class Meta:
+        model = Sucursal
+        fields = ['id', 'nombre', 'provincia', 'departamento', 'localidad', 'direccion']
+
+    def validate(self, data):
         nombre = data.get('nombre', '').strip()
-        provincia = data.get('provincia', '').strip()
-        localidad = data.get('localidad', '').strip()
-        departamento = data.get('departamento', '').strip()
+        provincia_nombre = data.get('provincia', '').strip()
+        departamento_nombre = data.get('departamento', '').strip()
+        localidad_nombre = data.get('localidad', '').strip()
         direccion = data.get('direccion', '').strip()
 
-        # Verificar duplicados
-        if Sucursal.objects.filter(
-            nombre__iexact=nombre,
-            provincia__iexact=provincia,
-            localidad__iexact=localidad,
-            departamento__iexact=departamento,
-            direccion=direccion
-        ).exists():
-            raise serializers.ValidationError(
-                "Ya existe una sucursal con el mismo nombre y ubicación geográfica."
-            )
+        # Buscar provincia
+        try:
+            provincia = Provincia.objects.get(nombre__iexact=provincia_nombre)
+        except Provincia.DoesNotExist:
+            raise serializers.ValidationError(f"La provincia '{provincia_nombre}' no existe en la base de datos.")
 
-        # Validar provincia
-        provincias = self._fetch("provincias", params={"campos": "nombre", "max": 100})
-        nombres_prov = {p["nombre"].lower() for p in provincias}
-        if provincia.lower() not in nombres_prov:
-            raise serializers.ValidationError(f"La provincia '{provincia}' no es válida.")
+        # Buscar departamento relacionado a la provincia
+        try:
+            departamento = Departamento.objects.get(nombre__iexact=departamento_nombre, provincia=provincia)
+        except Departamento.DoesNotExist:
+            raise serializers.ValidationError(f"El departamento '{departamento_nombre}' no existe en la provincia '{provincia_nombre}'.")
 
-        # Validar departamento según provincia
-        departamentos = self._fetch("departamentos", params={"provincia": provincia, "campos": "nombre", "max": 500})
-        nombres_dep = {d["nombre"].lower() for d in departamentos}
-        if departamento.lower() not in nombres_dep:
-            raise serializers.ValidationError(f"El departamento '{departamento}' no es válido para la provincia '{provincia}'.")
+        # Buscar localidad relacionada al departamento
+        try:
+            localidad = Localidad.objects.get(nombre__iexact=localidad_nombre, departamento=departamento)
+        except Localidad.DoesNotExist:
+            raise serializers.ValidationError(f"La localidad '{localidad_nombre}' no existe en el departamento '{departamento_nombre}'.")
 
-        # Validar localidad según provincia y departamento
-        localidades = self._fetch("localidades", params={
-            "provincia": provincia,
-            "departamento": departamento,
-            "campos": "nombre",
-            "max": 1000
-        })
-        nombres_loc = {l["nombre"].lower() for l in localidades}
-        if localidad.lower() not in nombres_loc:
-            raise serializers.ValidationError(
-                f"La localidad '{localidad}' no es válida para el departamento '{departamento}' en la provincia '{provincia}'."
-            )
+        # Reemplazar strings por instancias
+        data['provincia'] = provincia
+        data['departamento'] = departamento
+        data['localidad'] = localidad
+        data['nombre'] = nombre
+        data['direccion'] = direccion
 
         return data
 
-    def _fetch(self, path, params=None):
-        """Hace una petición directa a la API del gobierno sin usar caché."""
-        url = f"{GEORREF_BASE}/{path}"
-        try:
-            response = requests.get(url, params=params or {}, timeout=10) # peticion http
-            response.raise_for_status()
-            data = response.json() #convertimos la respuesta a json
-            if "provincias" in data:
-                return data["provincias"] #devuelve la lista segun el endpoint
-            elif "departamentos" in data:
-                return data["departamentos"]
-            elif "localidades" in data:
-                return data["localidades"]
-        except requests.RequestException as e:
-            raise serializers.ValidationError(f"No se pudo conectar con la API de georef: {str(e)}")
-        return []
 
 #-------------------------------------------------------------------------#
 #                                 MARCA                                   #
@@ -103,7 +107,7 @@ class MarcaSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def validate_nombre(self, value):
-        nombre_normalizado = value.strip().lower() #quito espacion y paso a minusculas
+        nombre_normalizado = value.strip().lower() #quito espacios y paso a minusculas
 
         # No permitir vacío
         if not nombre_normalizado:
