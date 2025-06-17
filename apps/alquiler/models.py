@@ -1,10 +1,12 @@
 #---------------------------------MODELOS---------------------------------#
 #                                                                         #
 #-------------------------------------------------------------------------#
+import re
 import uuid
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.utils.timezone import now
 
 
 class Provincia(models.Model):
@@ -101,6 +103,8 @@ class Sucursal(models.Model):
 #       def __str__(self):
 #           return f"{self.nombre} - {self.localidad}, {self.provincia}"
 
+
+
 class Marca(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nombre = models.CharField(max_length=100, unique=True)
@@ -108,6 +112,29 @@ class Marca(models.Model):
     def __str__(self):
         return self.nombre
 
+    def clean(self):
+        nombre_normalizado = self.nombre.strip().lower()
+
+        if not nombre_normalizado:
+            raise ValidationError({"nombre": "El nombre no puede estar vacío."})
+
+        if len(nombre_normalizado) < 3:
+            raise ValidationError({"nombre": "El nombre debe tener al menos 3 caracteres."})
+
+        if "marca" in nombre_normalizado:
+            raise ValidationError({"nombre": "El nombre no puede contener la palabra 'marca'."})
+
+        if not re.search(r'[a-zA-Z]', nombre_normalizado):
+            raise ValidationError({"nombre": "El nombre debe contener al menos una letra."})
+
+        if re.search(r'[^a-zA-Z0-9\s]', nombre_normalizado):
+            raise ValidationError({"nombre": "El nombre no debe contener caracteres especiales."})
+
+        if Marca.objects.exclude(pk=self.pk).filter(nombre__iexact=nombre_normalizado).exists():
+            raise ValidationError({"nombre": "Ya existe una marca con este nombre."})
+
+        # Opcional: guardar el nombre limpio sin espacios
+        self.nombre = self.nombre.strip()
 
 
 class TipoVehiculo(models.Model):
@@ -117,6 +144,29 @@ class TipoVehiculo(models.Model):
     def __str__(self):
         return self.descripcion
 
+    def clean(self):
+        descripcion_normalizada = self.descripcion.strip().lower()
+
+        if not descripcion_normalizada:
+            raise ValidationError("La descripción no puede estar vacía.")
+
+        if len(descripcion_normalizada) < 3:
+            raise ValidationError("La descripción debe tener al menos 3 caracteres.")
+
+        if "tipo" in descripcion_normalizada:
+            raise ValidationError("La descripción no puede contener la palabra 'tipo'.")
+
+        if not re.search(r'[a-zA-Z]', descripcion_normalizada):
+            raise ValidationError("La descripción debe contener al menos una letra.")
+
+        if re.search(r'[^a-zA-Z0-9\s]', descripcion_normalizada):
+            raise ValidationError("La descripción no debe contener caracteres especiales.")
+
+        if TipoVehiculo.objects.exclude(pk=self.pk).filter(descripcion__iexact=descripcion_normalizada).exists():
+            raise ValidationError("Ya existe un tipo de vehículo con esta descripción.")
+
+        # Limpieza final (opcional)
+        self.descripcion = self.descripcion.strip()
 
 class ModeloVehiculo(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -126,7 +176,9 @@ class ModeloVehiculo(models.Model):
     es_premium = models.BooleanField(default=False, editable=False)  # Campo calculado
 
     class Meta:
-        unique_together = ('nombre', 'marca') # Un modelo no puede repetirse dentro de la misma marca
+        #unique_together = ('nombre', 'marca') # Un modelo no puede repetirse dentro de la misma marca
+        #unique_together = ('nombre', 'marca', 'tipo')
+        pass
 
     def __str__(self):
         return f"{self.marca.nombre} {self.nombre}"
@@ -138,6 +190,46 @@ class ModeloVehiculo(models.Model):
         self.es_premium = self.calcular_es_premium()
         super().save(*args, **kwargs)
 
+
+    def clean(self):
+        # Normalizar nombre
+        nombre = (self.nombre or '').strip()
+        marca_nombre = self.marca.nombre if self.marca else ''
+
+        # Validaciones
+        if len(nombre) < 2:
+            raise ValidationError({'nombre': 'El nombre debe tener al menos 2 caracteres.'})
+
+        if not re.search(r'[a-zA-Z]', nombre):
+            raise ValidationError({'nombre': 'El nombre debe contener al menos una letra.'})
+
+        if re.search(r'[^a-zA-Z0-9\s]', nombre):
+            raise ValidationError({'nombre': 'El nombre no debe contener caracteres especiales.'})
+
+        if nombre.lower() in ['modelo', 'vehiculo', 'tipo', 'marca']:
+            raise ValidationError({'nombre': 'El nombre del modelo es demasiado genérico.'})
+
+        if marca_nombre and marca_nombre.lower() in nombre.lower():
+            raise ValidationError({'nombre': 'El nombre del modelo no debe contener el nombre de la marca.'})
+
+        # Unicidad (nombre, marca, tipo)
+        qs = ModeloVehiculo.objects.filter(
+            nombre__iexact=nombre,
+            marca=self.marca,
+            tipo=self.tipo
+        )
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)
+        if qs.exists():
+            raise ValidationError('Ya existe un modelo con ese nombre, marca y tipo.')
+
+        # Restricción tipo deportivo solo marcas premium
+        marcas_premium = ['audi', 'bmw', 'mercedes']
+        if self.tipo and self.tipo.descripcion.lower() == 'deportivo':
+            if self.marca.nombre.lower() not in marcas_premium:
+                raise ValidationError('Solo las marcas Audi, BMW o Mercedes pueden tener modelos deportivos.')
+
+        # Si todo está bien, puede retornar None o no poner return
 
 class Vehiculo(models.Model):
 
@@ -168,6 +260,27 @@ class Vehiculo(models.Model):
     def tipo(self):
         return self.modelo.tipo
 
+    def clean(self):
+        año_actual = now().year
+
+        if self.año < 1950 or self.año > año_actual:
+            raise ValidationError({'año': f"El año debe estar entre 1950 y {año_actual}."})
+
+        if self.precio_por_dia <= 0:
+            raise ValidationError({'precio_por_dia': "El precio por día debe ser mayor que cero."})
+
+        if self.modelo and self.sucursal:
+            qs = Vehiculo.objects.filter(modelo=self.modelo, sucursal=self.sucursal)
+            if self.pk:
+                qs = qs.exclude(id=self.pk)
+            if qs.count() >= 5:
+                raise ValidationError("No se puede registrar más de 5 vehículos del mismo modelo en esta sucursal.")
+
+        if self.modelo and self.año and self.modelo.tipo.descripcion.lower() == 'deportivo':
+            if self.año < 1990:
+                raise ValidationError("No se pueden registrar deportivos anteriores a 1990.")
+            if self.precio_por_dia < 100000:
+                raise ValidationError("Los vehículos deportivos no pueden tener un precio menor a 100000 por día.")
 
 
 class Alquiler(models.Model):
@@ -208,6 +321,11 @@ class Reserva(models.Model):
 
     def __str__(self):
         return f"Reserva {self.id} - {self.cliente}"
+
+
+
+
+
 
 
 """

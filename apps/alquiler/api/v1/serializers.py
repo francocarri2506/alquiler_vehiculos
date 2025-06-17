@@ -23,6 +23,8 @@ from django.core.cache import cache  # opcional para cachear resultados
 
 
 
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.exceptions import ValidationError as DRFValidationError, ValidationError
 
 
 #-------------------------------------------------------------------------#
@@ -88,7 +90,7 @@ class SucursalCreateSerializer(serializers.ModelSerializer):
         except Localidad.DoesNotExist:
             raise serializers.ValidationError(f"La localidad '{localidad_nombre}' no existe en el departamento '{departamento_nombre}'.")
 
-        # Reemplazar strings por instancias
+        # Reemplazar strings por instancias para crear/actualizar el modelo
         data['provincia'] = provincia
         data['departamento'] = departamento
         data['localidad'] = localidad
@@ -97,6 +99,21 @@ class SucursalCreateSerializer(serializers.ModelSerializer):
 
         return data
 
+    def create(self, validated_data):
+        try:
+            instance = Sucursal.objects.create(**validated_data)
+            return instance
+        except DjangoValidationError as e:
+            raise DRFValidationError({'non_field_errors': e.messages})
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        try:
+            instance.save()
+            return instance
+        except DjangoValidationError as e:
+            raise DRFValidationError({'non_field_errors': e.messages})
 
 #-------------------------------------------------------------------------#
 #                                 MARCA                                   #
@@ -106,34 +123,15 @@ class MarcaSerializer(serializers.ModelSerializer):
         model = Marca
         fields = '__all__'
 
-    def validate_nombre(self, value):
-        nombre_normalizado = value.strip().lower() #quito espacios y paso a minusculas
-
-        # No permitir vacío
-        if not nombre_normalizado:
-            raise serializers.ValidationError("El nombre no puede estar vacío.")
-
-        # Longitud mínima
-        if len(nombre_normalizado) < 3:
-            raise serializers.ValidationError("El nombre debe tener al menos 3 caracteres.")
-
-        # No debe contener la palabra "marca"
-        if "marca" in nombre_normalizado:
-            raise serializers.ValidationError("El nombre no puede contener la palabra 'marca'.")
-
-        # Debe tener al menos una letra (evita 123, ###, etc.)
-        if not re.search(r'[a-zA-Z]', nombre_normalizado):
-            raise serializers.ValidationError("El nombre debe contener al menos una letra.")
-
-        # Evitar caracteres especiales no alfabéticos como @, #, %, etc.
-        if re.search(r'[^a-zA-Z0-9\s]', nombre_normalizado):
-            raise serializers.ValidationError("El nombre no debe contener caracteres especiales.")
-
-        # Validación de duplicados (insensible a mayúsculas/minúsculas)
-        if Marca.objects.filter(nombre__iexact=nombre_normalizado).exists():
-            raise serializers.ValidationError("Ya existe una marca con este nombre.")
-
-        return value.strip()
+    def validate(self, data):
+        try:
+            # Creamos una instancia temporal con los datos del serializer
+            instance = Marca(**data)
+            instance.clean()  # ejecutamos las validaciones del modelo
+        except DjangoValidationError as e:
+            # Capturamos los errores y los pasamos como ValidationError de DRF
+            raise DRFValidationError(e.message_dict)
+        return data
 
 
 #-------------------------------------------------------------------------#
@@ -144,28 +142,13 @@ class TipoVehiculoSerializer(serializers.ModelSerializer):
         model = TipoVehiculo
         fields = '__all__'
 
-    def validate_descripcion(self, value):
-        descripcion_normalizada = value.strip().lower()
-
-        if not descripcion_normalizada:
-            raise serializers.ValidationError("La descripción no puede estar vacía.")
-
-        if len(descripcion_normalizada) < 3:
-            raise serializers.ValidationError("La descripción debe tener al menos 3 caracteres.")
-
-        if "tipo" in descripcion_normalizada:
-            raise serializers.ValidationError("La descripción no puede contener la palabra 'tipo'.")
-
-        if not re.search(r'[a-zA-Z]', descripcion_normalizada):
-            raise serializers.ValidationError("La descripción debe contener al menos una letra.")
-
-        if re.search(r'[^a-zA-Z0-9\s]', descripcion_normalizada):
-            raise serializers.ValidationError("La descripción no debe contener caracteres especiales.")
-
-        if TipoVehiculo.objects.filter(descripcion__iexact=descripcion_normalizada).exists():
-            raise serializers.ValidationError("Ya existe un tipo de vehículo con esta descripción.")
-
-        return value.strip()
+    def validate(self, data):
+        try:
+            instance = TipoVehiculo(**data)
+            instance.clean()
+        except DjangoValidationError as e:
+            raise DRFValidationError(e.message_dict if hasattr(e, 'message_dict') else {'non_field_errors': e.messages})
+        return data
 
 
 #-------------------------------------------------------------------------#
@@ -187,7 +170,7 @@ class ModeloVehiculoSerializer(serializers.ModelSerializer):
             'es_premium'
         ]
 
-
+    """
     def validate_nombre(self, value):
         nombre_normalizado = value.strip()
         marca_id = self.initial_data.get('marca')
@@ -252,6 +235,23 @@ class ModeloVehiculoSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    """
+    def validate(self, data):
+        # Aquí creamos una instancia temporal con datos ya validados parcialmente
+        # Para update, incluimos la instancia original
+        instance = ModeloVehiculo(**data)
+        if self.instance:
+            instance.pk = self.instance.pk  # para que no choque con la unicidad
+
+        try:
+            instance.clean()
+        except DjangoValidationError as e:
+            if hasattr(e, 'message_dict'):
+                raise DRFValidationError(e.message_dict)
+            else:
+                raise DRFValidationError(e.messages)
+        return data
+
 
 #-------------------------------------------------------------------------#
 #                                VEHICULO                                 #
@@ -288,7 +288,29 @@ class VehiculoSerializer(serializers.ModelSerializer):
             return round(obj.precio_por_dia / tipo_cambio, 2)
         return None
 
+    def validate_patente(self, value):
+        patente = value.strip().upper()
+        if not re.match(r'^[A-Z0-9]{6}$', patente):
+            raise serializers.ValidationError("La patente debe tener exactamente 6 caracteres alfanuméricos.")
 
+        qs = Vehiculo.objects.filter(patente__iexact=patente)
+        if self.instance:
+            qs = qs.exclude(id=self.instance.id)
+        if qs.exists():
+            raise serializers.ValidationError("Ya existe un vehículo con esta patente.")
+        return patente
+
+    def validate(self, data):
+        instance = self.instance or Vehiculo()
+        for attr, value in data.items():
+            setattr(instance, attr, value)
+        try:
+            instance.full_clean()
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(e.message_dict)
+        return data
+
+""" 
     def validate_patente(self, value):
         patente_normalizada = value.strip().upper()
 
@@ -373,7 +395,7 @@ class VehiculoSerializer(serializers.ModelSerializer):
 
         return data
 
-
+"""
 
 #-------------------------------------------------------------------------#
 #                                RESERVA                                  #
