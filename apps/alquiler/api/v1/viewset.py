@@ -94,8 +94,8 @@ class ModeloVehiculoViewSet(viewsets.ModelViewSet):
 
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     filterset_class = ModeloVehiculoFilter
-    ordering_fields = ['nombre', 'marca__nombre', 'tipo__nombre', 'es_premium']
-    search_fields = ['nombre', 'marca__nombre', 'tipo__nombre']
+    ordering_fields = ['nombre', 'marca__nombre', 'tipo__descripcion', 'es_premium']
+    search_fields = ['nombre', 'marca__nombre', 'tipo__descripcion']
 
 
 

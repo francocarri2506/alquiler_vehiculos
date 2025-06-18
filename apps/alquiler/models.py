@@ -328,6 +328,7 @@ class Reserva(models.Model):
 
 
 
+
 """
 #antes de tener modelos como un objeto
 

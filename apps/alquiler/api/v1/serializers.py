@@ -487,9 +487,6 @@ class ReservaSerializer(serializers.ModelSerializer):
         if vehiculo and vehiculo.estado != 'disponible':
             raise serializers.ValidationError("El vehículo no está disponible para reservar.")
 
-#       if vehiculo.estado not in ['disponible', 'reservado']:
-#           raise serializers.ValidationError("El vehículo no se encuentra disponible para alquilar.")
-
         # Si la reserva es para hoy, debe haber al menos 2 vehículos disponibles del mismo modelo
         hoy = timezone.now().date()
         if fecha_inicio == hoy:
