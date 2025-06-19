@@ -7,22 +7,50 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+# def create_user(username, documento_identidad, first_name='Nombre', last_name='Apellido', password='unpassword', email=None, *, is_active=True, is_staff=False):
+#     email = '{}@root.com'.format(username) if email is None else email
+#
+#     user, created = User.objects.get_or_create(
+#         username=username,
+#         email=email,
+#         documento_identidad=documento_identidad
+#     )
+#
+#     if created:
+#         user.first_name = first_name
+#         user.last_name = last_name
+#         user.is_active = is_active
+#         user.is_staff = is_staff
+#         user.set_password(password)
+#         user.save()
+#
+#     return user
+
 def create_user(username, documento_identidad, first_name='Nombre', last_name='Apellido', password='unpassword', email=None, *, is_active=True, is_staff=False):
     email = '{}@root.com'.format(username) if email is None else email
 
-    user, created = User.objects.get_or_create(username=username, email=email)
+    # Primero buscamos usuario por username y dni (campo único)
+    user = None
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        pass
 
-    if created:
-        user.documento_identidad = documento_identidad
-        user.first_name = first_name
-        user.last_name = last_name
-        user.is_active = is_active
-        user.is_staff = is_staff
+    if user is None:
+        # Creamos nuevo usuario, esta vez asignando dni desde el principio
+        user = User(
+            username=username,
+            email=email,
+            dni=documento_identidad,
+            first_name=first_name,
+            last_name=last_name,
+            is_active=is_active,
+            is_staff=is_staff,
+        )
         user.set_password(password)
         user.save()
 
     return user
-
 
 def crear_token_jwt(username, password):
     client = APIClient()
@@ -41,7 +69,14 @@ def user_cliente_con_token():
     # Grupo cliente con permisos de lectura
     grupo_cliente, _ = Group.objects.get_or_create(name='cliente')
     if grupo_cliente.permissions.count() == 0:
-        permisos = Permission.objects.filter(codename__startswith='view_')
+        permisos = Permission.objects.filter(
+            codename__in=[
+                'view_reserva',
+                'add_reserva',
+                'change_reserva',
+                'delete_reserva'
+            ]
+        )
         grupo_cliente.permissions.set(permisos)
 
     user.groups.add(grupo_cliente)
@@ -50,7 +85,8 @@ def user_cliente_con_token():
     token = crear_token_jwt('cliente', 'cliente123')
     client = APIClient()
     client.credentials(HTTP_AUTHORIZATION='Bearer ' + token)
-    return client
+    #return client
+    return client, user
 
 
 @pytest.fixture
@@ -72,7 +108,32 @@ def user_admin_con_token():
 
 
 
+@pytest.fixture
+def user_cliente_con_token_intruso():
+    # Crear otro usuario distinto
+    user = create_user('intruso', '22334455', is_staff=False, password='intruso123')
 
+    # Grupo cliente con permisos
+    grupo_cliente, _ = Group.objects.get_or_create(name='cliente')
+    if grupo_cliente.permissions.count() == 0:
+        permisos = Permission.objects.filter(
+            codename__in=[
+                'view_reserva',
+                'add_reserva',
+                'change_reserva',
+                'delete_reserva'
+            ]
+        )
+        grupo_cliente.permissions.set(permisos)
+
+    user.groups.add(grupo_cliente)
+    user.save()
+
+    token = crear_token_jwt('intruso', 'intruso123')
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION='Bearer ' + token)
+
+    return client, user
 
 
 """

@@ -5,6 +5,7 @@ from rest_framework import viewsets, status, filters
 from rest_framework.exceptions import PermissionDenied, NotFound, ValidationError
 from rest_framework.permissions import DjangoModelPermissions
 
+from alquiler_vehiculos.permissions import StrictModelPermissions, EsPropietarioOAdmin
 from apps.alquiler.models import Sucursal, Marca, TipoVehiculo, Vehiculo, Alquiler, Reserva, HistorialEstadoAlquiler, \
     ModeloVehiculo
 from .filters import ModeloVehiculoFilter
@@ -264,9 +265,11 @@ class VehiculoViewSet(viewsets.ModelViewSet):
 from rest_framework.permissions import IsAuthenticated
 
 class ReservaViewSet(viewsets.ModelViewSet):
-    queryset = Reserva.objects.all()
+    queryset = Reserva.objects.all() # Incluye todas las reservas
     serializer_class = ReservaSerializer
-    permission_classes = [IsAuthenticated, DjangoModelPermissions]
+    #permission_classes = [IsAuthenticated, DjangoModelPermissions]
+
+    permission_classes = [IsAuthenticated, StrictModelPermissions, EsPropietarioOAdmin] #para reservas en test
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['estado', 'sucursal', 'cliente']
@@ -274,11 +277,24 @@ class ReservaViewSet(viewsets.ModelViewSet):
     ordering_fields = ['fecha_inicio', 'fecha_fin', 'monto_total']
     ordering = ['fecha_inicio']
 
+    # def get_queryset(self):
+    #     user = self.request.user
+    #     if user.is_staff:
+    #         return Reserva.objects.all()
+    #     return Reserva.objects.filter(cliente=user)  #  solo puede ver sus reservas
+
     def get_queryset(self):
         user = self.request.user
+
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            # Aquí devolvemos todas las reservas para que el permission verifique acceso
+            return Reserva.objects.all()
+
+        # En el listado solo devolvemos las reservas del usuario
         if user.is_staff:
             return Reserva.objects.all()
-        return Reserva.objects.filter(cliente=user)  #  solo puede ver sus reservas
+        return Reserva.objects.filter(cliente=user)
+
 
     def perform_create(self, serializer):
         user = self.request.user

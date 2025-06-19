@@ -323,37 +323,51 @@ class Reserva(models.Model):
         return f"Reserva {self.id} - {self.cliente}"
 
 
+    def clean(self):
+        if self.fecha_inicio >= self.fecha_fin:
+            raise ValidationError("La fecha de inicio debe ser anterior a la fecha de fin.")
+
+        if (self.fecha_fin - self.fecha_inicio).days > 30:
+            raise ValidationError("La reserva no puede superar los 30 días.")
+
+        if self.vehiculo and self.vehiculo.estado != 'disponible':
+            raise ValidationError("El vehículo no está disponible para reservar.")
+
+        reservas_conflictivas = Reserva.objects.filter(
+            vehiculo=self.vehiculo,
+            estado__in=['pendiente', 'confirmada'],
+            fecha_inicio__lt=self.fecha_fin,
+            fecha_fin__gt=self.fecha_inicio
+        ).exclude(id=self.id)
+
+        if reservas_conflictivas.exists():
+            raise ValidationError("El vehículo ya tiene una reserva en ese rango de fechas.")
+
+        alquileres_conflictivos = Alquiler.objects.filter(
+            vehiculo=self.vehiculo,
+            estado__in=['pendiente', 'activo'],
+            fecha_inicio__lt=self.fecha_fin,
+            fecha_fin__gt=self.fecha_inicio
+        )
+        if alquileres_conflictivos.exists():
+            raise ValidationError("El vehículo ya está alquilado en ese rango de fechas.")
+
+    def __str__(self):
+        return f"Reserva {self.id} - {self.cliente}"
 
 
 
 
 
 
-"""
-#antes de tener modelos como un objeto
 
-# class Vehiculo(models.Model):
-#     ESTADO_CHOICES = [
-#         ('disponible', 'Disponible'),
-#         ('alquilado', 'Alquilado'),
-#         ('mantenimiento', 'En mantenimiento'),
-#         ('reservado', 'Reservado'),
-#     ]
-# 
-#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-#     marca = models.ForeignKey(Marca, on_delete=models.CASCADE, related_name='vehiculos')
-#     modelo = models.CharField(max_length=100)
-#     patente = models.CharField(max_length=20, unique=True)
-#     tipo = models.ForeignKey(TipoVehiculo, on_delete=models.SET_NULL, null=True)
-#     año = models.PositiveIntegerField()
-#     precio_por_dia = models.DecimalField(max_digits=10, decimal_places=2)
-#     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='disponible')
-#     sucursal = models.ForeignKey('Sucursal', on_delete=models.CASCADE, related_name='vehiculos')
-# 
-#     def __str__(self):
-#         return f"{self.marca.nombre} {self.modelo} ({self.patente})"
 
-"""
+
+
+
+
+
+
 
 class HistorialEstadoAlquiler(models.Model):
     alquiler = models.ForeignKey(Alquiler, on_delete=models.CASCADE, related_name='historial_estados')
