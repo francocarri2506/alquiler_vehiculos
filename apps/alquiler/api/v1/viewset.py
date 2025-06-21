@@ -5,6 +5,7 @@ from rest_framework import viewsets, status, filters
 from rest_framework.exceptions import PermissionDenied, NotFound, ValidationError
 from rest_framework.permissions import DjangoModelPermissions
 
+from alquiler_vehiculos.permissions import StrictModelPermissions, EsPropietarioOAdmin
 from apps.alquiler.models import Sucursal, Marca, TipoVehiculo, Vehiculo, Alquiler, Reserva, HistorialEstadoAlquiler, \
     ModeloVehiculo
 from .filters import ModeloVehiculoFilter
@@ -28,17 +29,6 @@ from datetime import datetime, date
 #-------------------------------------------------------------------------#
 #                             SUCURSAL                                    #
 #-------------------------------------------------------------------------#
-
-# class SucursalViewSet(viewsets.ModelViewSet):
-#     queryset = Sucursal.objects.all()
-#     serializer_class = SucursalSerializer
-#     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-#     filterset_fields = ['nombre', 'provincia', 'departamento', 'localidad']
-#     search_fields = ['nombre', 'direccion']
-#     ordering_fields = ['nombre']
-#     ordering = ['nombre']
-#
-#
 
 class SucursalViewSet(viewsets.ModelViewSet):
     queryset = Sucursal.objects.all()
@@ -264,9 +254,11 @@ class VehiculoViewSet(viewsets.ModelViewSet):
 from rest_framework.permissions import IsAuthenticated
 
 class ReservaViewSet(viewsets.ModelViewSet):
-    queryset = Reserva.objects.all()
+    queryset = Reserva.objects.all() # Incluye todas las reservas
     serializer_class = ReservaSerializer
-    permission_classes = [IsAuthenticated, DjangoModelPermissions]
+    #permission_classes = [IsAuthenticated, DjangoModelPermissions]
+
+    permission_classes = [IsAuthenticated, StrictModelPermissions, EsPropietarioOAdmin] #para reservas en test
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['estado', 'sucursal', 'cliente']
@@ -274,11 +266,24 @@ class ReservaViewSet(viewsets.ModelViewSet):
     ordering_fields = ['fecha_inicio', 'fecha_fin', 'monto_total']
     ordering = ['fecha_inicio']
 
+    # def get_queryset(self):
+    #     user = self.request.user
+    #     if user.is_staff:
+    #         return Reserva.objects.all()
+    #     return Reserva.objects.filter(cliente=user)  #  solo puede ver sus reservas
+
     def get_queryset(self):
         user = self.request.user
+
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            # Aquí devolvemos todas las reservas para que el permission verifique acceso
+            return Reserva.objects.all()
+
+        # En el listado solo devolvemos las reservas del usuario
         if user.is_staff:
             return Reserva.objects.all()
-        return Reserva.objects.filter(cliente=user)  #  solo puede ver sus reservas
+        return Reserva.objects.filter(cliente=user)
+
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -315,6 +320,11 @@ class ReservaViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Solo se pueden confirmar reservas pendientes.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
+        # Calcular monto total
+        dias = (reserva.fecha_fin - reserva.fecha_inicio).days
+        precio_diario = reserva.vehiculo.precio_por_dia
+        monto_total = precio_diario * dias
+
         # Crear el alquiler basado en la reserva
 
         alquiler = Alquiler.objects.create(
@@ -323,7 +333,8 @@ class ReservaViewSet(viewsets.ModelViewSet):
             sucursal=reserva.sucursal,
             fecha_inicio=reserva.fecha_inicio,
             fecha_fin=reserva.fecha_fin,
-            monto_total=reserva.monto_total,
+            #monto_total=reserva.monto_total,
+            monto_total=monto_total,
             estado='activo'
         )
 

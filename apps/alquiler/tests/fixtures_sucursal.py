@@ -22,36 +22,7 @@ def crear_sucursales_existentes(db):
     localidad_santa_maria = Localidad.objects.get_or_create(nombre='Santa María', departamento=santa_maria)[0]
     localidad_san_jose = Localidad.objects.get_or_create(nombre='San José', departamento=santa_maria)[0]
     localidad_amaicha = Localidad.objects.get_or_create(nombre='Amaicha del Valle', departamento=tafi_valle)[0]
-    """
-    Sucursal.objects.create(
-        nombre='Auto Rentas',
-        provincia=catamarca,
-        departamento=santa_maria,
-        localidad=localidad_santa_maria,
-        direccion='9 de julio 1300'
-    )
-    Sucursal.objects.create(
-        nombre='Auto Rentas',
-        provincia=catamarca,
-        departamento=santa_maria,
-        localidad=localidad_san_jose,
-        direccion='Av las Americas'
-    )
-    Sucursal.objects.create(
-        nombre='CarrosSeguros',
-        provincia=tucuman,
-        departamento=tafi_valle,
-        localidad=localidad_amaicha,
-        direccion='avenidas las americas'
-    )
-    Sucursal.objects.create(
-        nombre='Renta y Ve',
-        provincia=catamarca,
-        departamento=santa_maria,
-        localidad=localidad_santa_maria,
-        direccion='Av las Americas'
-    )
-    """
+
     sucursales = [
         Sucursal.objects.create(nombre="Auto Rentas", direccion="9 de julio 1300", provincia=catamarca, departamento=santa_maria, localidad=localidad_santa_maria),
         Sucursal.objects.create(nombre="Auto Rentas", direccion="Av las Americas", provincia=catamarca, departamento=santa_maria, localidad=localidad_san_jose),
@@ -77,3 +48,4 @@ def departamento_santa_maria(provincia_catamarca):
 @pytest.fixture
 def localidad_santa_maria(departamento_santa_maria):
     return Localidad.objects.create(nombre="Santa María", departamento=departamento_santa_maria)
+

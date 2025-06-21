@@ -14,11 +14,8 @@ def test_creacion_modelo_exitosa(user_admin_con_token, marca_bmw, tipo_sedan):
         "marca": str(marca_bmw.id),
         "tipo": str(tipo_sedan.id)
     }
-
     response = client.post("/api/v1/viewset/modelos/", data=data, format="json")
 
-    print("STATUS:", response.status_code)
-    print("DATA:", response.data)
 
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data["nombre"] == "Serie 3"
@@ -38,8 +35,7 @@ def test_modelo_nombre_corto(user_admin_con_token, marca_bmw, tipo_sedan):
     }
 
     response = client.post("/api/v1/viewset/modelos/", data=data, format="json")
-    print("STATUS:", response.status_code)
-    print("DATA:", response.data)
+
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "nombre" in response.data
@@ -57,8 +53,6 @@ def test_modelo_caracteres_invalidos(user_admin_con_token, marca_bmw, tipo_sedan
     }
 
     response = client.post("/api/v1/viewset/modelos/", data=data, format="json")
-    print("STATUS:", response.status_code)
-    print("DATA:", response.data)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "caracteres especiales" in response.data["nombre"][0]
@@ -74,8 +68,6 @@ def test_modelo_nombre_contiene_marca(user_admin_con_token, marca_bmw, tipo_seda
     }
 
     response = client.post("/api/v1/viewset/modelos/", data=data, format="json")
-    print("STATUS:", response.status_code)
-    print("DATA:", response.data)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "no debe contener el nombre de la marca" in response.data["nombre"][0]
@@ -92,8 +84,7 @@ def test_modelo_duplicado(user_admin_con_token, marca_bmw, tipo_sedan):
     }
 
     response = client.post("/api/v1/viewset/modelos/", data=data, format="json")
-    print("STATUS:", response.status_code)
-    print("DATA:", response.data)
+
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "Ya existe un modelo con ese nombre" in response.data["non_field_errors"][0]
@@ -109,14 +100,9 @@ def test_modelo_deportivo_con_marca_no_premium(user_admin_con_token, marca_fiat,
     }
 
     response = client.post("/api/v1/viewset/modelos/", data=data, format="json")
-    print("STATUS:", response.status_code)
-    print("DATA:", response.data)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "Solo las marcas Audi, BMW o Mercedes" in response.data["non_field_errors"][0]
-
-
-
 
 
 @pytest.mark.django_db
@@ -162,7 +148,6 @@ def test_listar_modelos_filtrados_por_marca(user_admin_con_token, get_modelos):
     assert len(data) == 1
     assert data[0]['nombre'] == modelo1.nombre
     assert data[0]['marca_nombre'] == modelo1.marca.nombre
-
 
 
 @pytest.mark.django_db
@@ -222,8 +207,6 @@ def test_asignar_tipo_exitosa(user_admin_con_token, get_modelos, get_tipos):
 
     response = cliente.post(url, data=data, format='json')
 
-    print("STATUS:", response.status_code)
-    print("DATA:", response.data)
 
     assert response.status_code == status.HTTP_200_OK
     assert 'mensaje' in response.data

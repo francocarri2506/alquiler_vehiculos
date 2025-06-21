@@ -5,10 +5,9 @@ from rest_framework.test import APIClient
 from apps.alquiler.models import Sucursal
 
 @pytest.mark.django_db
-def test_creacion_sucursal_exitosa(user_autenticado, datos_geograficos):
+def test_creacion_sucursal_exitosa(user_admin_con_token, datos_geograficos):
     provincia, departamento, localidad = datos_geograficos
-    client = user_autenticado
-
+    client= user_admin_con_token
 
     data = {
         "nombre": "Sucursal Centro",
@@ -18,20 +17,16 @@ def test_creacion_sucursal_exitosa(user_autenticado, datos_geograficos):
         "direccion": "Av. Colón 1234"
     }
 
-    #response = client.post('/api/sucursales/', data, format='json')
     response = client.post('/api/v1/viewset/sucursales/', data, format='json')
-
-    print("STATUS:", response.status_code)
-    print("DATA:", response.data)  # Aquí mostramos detalle del error
 
     assert response.status_code == 201
     assert Sucursal.objects.filter(nombre="Sucursal Centro").exists()
 
 
 @pytest.mark.django_db
-def test_cliente_no_puede_crear_sucursal(user_cliente_sin_permisos, datos_geograficos):
+def test_cliente_no_puede_crear_sucursal(user_cliente_con_token, datos_geograficos):
     provincia, departamento, localidad = datos_geograficos
-    client = user_cliente_sin_permisos
+    client, user = user_cliente_con_token
 
     data = {
         "nombre": "Sucursal Cliente",
@@ -42,44 +37,18 @@ def test_cliente_no_puede_crear_sucursal(user_cliente_sin_permisos, datos_geogra
     }
 
     response = client.post('/api/v1/viewset/sucursales/', data, format='json')
-    print("STATUS:", response.status_code)
-    print("DATA:", response.data)
 
     assert response.status_code == 403
-
-
-@pytest.mark.django_db
-def test_admin_puede_crear_sucursal(user_admin_con_permisos, datos_geograficos):
-    provincia, departamento, localidad = datos_geograficos
-    client = user_admin_con_permisos
-
-    data = {
-        "nombre": "Sucursal Admin",
-        "provincia": provincia.nombre,
-        "departamento": departamento.nombre,
-        "localidad": localidad.nombre,
-        "direccion": "Av. Colón 1234"
-    }
-
-    response = client.post('/api/v1/viewset/sucursales/', data, format='json')
-
-    print("STATUS:", response.status_code)
-    print("DATA:", response.data)
-
-    assert response.status_code == 201
+    assert str(response.data["detail"]) == "Usted no tiene permiso para realizar esta acción."
 
 
 
 @pytest.mark.django_db
-#def test_listado_sucursales(user_cliente_sin_permisos, crear_sucursales_existentes):
-    #client = user_cliente_sin_permisos
 def test_listado_sucursales(user_cliente_con_token, crear_sucursales_existentes):
 
-    client = user_cliente_con_token
+    client,user = user_cliente_con_token
     response = client.get('/api/v1/viewset/sucursales/')
 
-    print("STATUS:", response.status_code)
-    print("DATA:", response.data)
 
     assert response.status_code == 200
     assert response.data['count'] == 4
@@ -106,9 +75,6 @@ def test_crear_sucursal_duplicada(user_admin_con_token, crear_sucursales_existen
 
     response = client.post('/api/v1/viewset/sucursales/', data=data, format='json')
 
-    print("STATUS:", response.status_code)
-    print("DATA:", response.data)
-
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'Ya existe una sucursal con el mismo nombre y ubicación geográfica.' in str(response.data)
 
@@ -129,14 +95,8 @@ def test_modificar_sucursal_exitosa(user_admin_con_token, crear_sucursales_exist
 
     response = client.put(url, data=nuevo_dato, format='json')
 
-    print("STATUS:", response.status_code)
-    print("DATA:", response.data)
-
     assert response.status_code == status.HTTP_200_OK
     assert response.data["nombre"] == "Sucursal Modificada"
-
-
-
 
 
 @pytest.mark.django_db
@@ -161,6 +121,8 @@ def test_modificar_sucursal_falla_por_duplicado(user_admin_con_token, crear_sucu
     assert 'Ya existe una sucursal con el mismo nombre y ubicación geográfica.' in response.data['__all__']
 
 
+#para simular masomenos la logica de verificacion del uso del api de las provincias, ya que ahora las guardo en la base de datos
+
 @pytest.mark.django_db
 def test_modificar_sucursal_falla_por_departamento_no_perteneciente(user_admin_con_token, crear_sucursales_existentes):
     client = user_admin_con_token
@@ -184,8 +146,6 @@ def test_modificar_sucursal_falla_por_departamento_no_perteneciente(user_admin_c
     }
 
     response = client.put(url, data=nuevo_dato, format='json')
-    print("STATUS:", response.status_code)
-    print("DATA:", response.data)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     mensaje = str(response.data).lower()
@@ -210,9 +170,6 @@ def test_modificar_sucursal_falla_por_duplicado(user_admin_con_token, crear_sucu
     }
 
     response = client.put(url, data=datos_duplicados, format='json')
-
-    print(response.status_code)
-    print(response.data)
 
     assert response.status_code == 400
     assert 'non_field_errors' in response.data
@@ -295,8 +252,6 @@ def test_creacion_sucursal_errores_mensajes(
     client = user_admin_con_token
     response = client.post('/api/v1/viewset/sucursales/', data=data, format='json')
 
-    print("STATUS:", response.status_code)
-    print("DATA:", response.data)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert expected_field in response.data
