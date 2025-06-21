@@ -1,10 +1,6 @@
 
-from datetime import date
 from decimal import Decimal
-
-from requests import Response
-from rest_framework import serializers, status
-
+from rest_framework import serializers
 from .dolar import obtener_precio_dolar_blue
 #from apps.alquiler.api.v1.mixins import RangoFechasVehiculoSerializerMixin
 from .mixins import RangoFechasVehiculoSerializerMixin
@@ -20,7 +16,6 @@ from django.utils import timezone
 
 import requests
 from django.core.cache import cache  # opcional para cachear resultados
-
 
 
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -54,7 +49,6 @@ class SucursalSerializer(serializers.ModelSerializer):
 
     def get_localidad_nombre(self, obj):
         return obj.localidad.nombre if obj.localidad else None
-
 
 class SucursalCreateSerializer(serializers.ModelSerializer):
     provincia = serializers.CharField()
@@ -245,7 +239,6 @@ class VehiculoSerializer(serializers.ModelSerializer):
         return data
 
 
-
 #-------------------------------------------------------------------------#
 #                                RESERVA                                  #
 #-------------------------------------------------------------------------#
@@ -302,7 +295,6 @@ class ReservaSerializer(serializers.ModelSerializer):
     def validate(self, data):
 
         user = self.context['request'].user
-
 
         # Primero: establecer el cliente (para usarlo en las validaciones)
         if not user.is_staff:
@@ -529,7 +521,6 @@ class AlquilerSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     "El cliente ya tiene un alquiler activo o pendiente en ese rango de fechas.")
 
-
         return data
 
 
@@ -557,11 +548,6 @@ class AlquilerSerializer(serializers.ModelSerializer):
             validated_data['sucursal'] = vehiculo.sucursal
 
         return super().update(instance, validated_data)
-
-
-
-
-
 
 
 #-------------------------------------------------------------------------#
@@ -618,103 +604,3 @@ class HistorialEstadoAlquilerSerializer(serializers.ModelSerializer):
 
         return data
 
-
-
-
-
-#sucursal sin api:
-
-# class SucursalSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Sucursal
-#         fields = '__all__'
-#
-#     def validate(self, data):
-#         nombre = data.get('nombre')
-#         provincia = data.get('provincia')
-#         localidad = data.get('localidad')
-#         departamento = data.get('departamento')
-#         direccion = data.get('direccion')
-#
-#         # Evitar sucursales duplicadas con mismo nombre y ubicación
-#         if Sucursal.objects.filter(
-#             nombre__iexact=nombre.strip(),
-#             provincia__iexact=provincia.strip(),
-#             localidad__iexact=localidad.strip(),
-#             departamento__iexact=departamento.strip(),
-#             direccion=direccion
-#         ).exists():
-#             raise serializers.ValidationError(
-#                 "Ya existe una sucursal con el mismo nombre y ubicación geográfica en esa localidad/provincia/departamento."
-#             )
-#
-#         return data
-
-
-
-"""
-#####implementando la logica de cambios de estados:
-
-class AlquilerSerializer(serializers.ModelSerializer):
-    cliente_nombre = serializers.CharField(source='cliente.username', read_only=True)
-    vehiculo_info = serializers.SerializerMethodField()
-    sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
-    monto_total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    historial_estados = HistorialEstadoAlquilerSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = Alquiler
-        fields = [
-            'id',
-            'cliente',
-            'cliente_nombre',
-            'vehiculo',
-            'vehiculo_info',
-            'sucursal',
-            'sucursal_nombre',
-            'fecha_inicio',
-            'fecha_fin',
-            'monto_total',
-            'estado',
-            'historial_estados',
-        ]
-
-    ESTADOS_VALIDOS = ['pendiente', 'activo', 'finalizado', 'cancelado']
-    TRANSICIONES_VALIDAS = {
-        'pendiente': ['activo', 'cancelado'],
-        'activo': ['finalizado', 'cancelado'],
-        'finalizado': [],
-        'cancelado': [],
-    }
-
-    def get_vehiculo_info(self, obj):
-        return f"{obj.vehiculo.marca} {obj.vehiculo.modelo}"  # Adaptalo si cambia tu modelo
-
-    def update(self, instance, validated_data):
-        estado_nuevo = validated_data.get('estado', instance.estado)
-        estado_anterior = instance.estado
-
-        # Validar transición si hay cambio de estado
-        if estado_nuevo != estado_anterior:
-            transiciones = self.TRANSICIONES_VALIDAS.get(estado_anterior, [])
-            if estado_nuevo not in transiciones:
-                raise serializers.ValidationError(
-                    f"No se puede cambiar de '{estado_anterior}' a '{estado_nuevo}'. Transiciones válidas: {transiciones}"
-                )
-
-        # Continuar con la actualización normal
-        instance = super().update(instance, validated_data)
-
-        # Si hubo cambio de estado, registrar historial
-        if estado_nuevo != estado_anterior:
-            usuario = self.context['request'].user  # Asegurate de pasar 'context' al serializador
-            HistorialEstadoAlquiler.objects.create(
-                alquiler=instance,
-                estado_anterior=estado_anterior,
-                estado_nuevo=estado_nuevo,
-                cambiado_por=usuario if isinstance(usuario, Usuario) else None
-            )
-
-        return instance
-
-"""
