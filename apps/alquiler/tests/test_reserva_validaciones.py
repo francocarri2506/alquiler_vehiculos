@@ -172,6 +172,9 @@ def test_confirmar_reserva_exitosa(user_cliente_con_token, crear_reserva_valida)
     assert alquiler.monto_total == Decimal(response.data["alquiler"]["monto_total"])
     assert alquiler.estado == 'activo'
 
+
+
+
 #########################################################################################################
 #                                       probando con parametrize                                        #
 #########################################################################################################
