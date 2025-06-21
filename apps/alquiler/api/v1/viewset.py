@@ -30,17 +30,6 @@ from datetime import datetime, date
 #                             SUCURSAL                                    #
 #-------------------------------------------------------------------------#
 
-# class SucursalViewSet(viewsets.ModelViewSet):
-#     queryset = Sucursal.objects.all()
-#     serializer_class = SucursalSerializer
-#     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-#     filterset_fields = ['nombre', 'provincia', 'departamento', 'localidad']
-#     search_fields = ['nombre', 'direccion']
-#     ordering_fields = ['nombre']
-#     ordering = ['nombre']
-#
-#
-
 class SucursalViewSet(viewsets.ModelViewSet):
     queryset = Sucursal.objects.all()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -331,6 +320,11 @@ class ReservaViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Solo se pueden confirmar reservas pendientes.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
+        # Calcular monto total
+        dias = (reserva.fecha_fin - reserva.fecha_inicio).days
+        precio_diario = reserva.vehiculo.precio_por_dia
+        monto_total = precio_diario * dias
+
         # Crear el alquiler basado en la reserva
 
         alquiler = Alquiler.objects.create(
@@ -339,7 +333,8 @@ class ReservaViewSet(viewsets.ModelViewSet):
             sucursal=reserva.sucursal,
             fecha_inicio=reserva.fecha_inicio,
             fecha_fin=reserva.fecha_fin,
-            monto_total=reserva.monto_total,
+            #monto_total=reserva.monto_total,
+            monto_total=monto_total,
             estado='activo'
         )
 

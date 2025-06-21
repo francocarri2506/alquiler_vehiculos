@@ -92,19 +92,6 @@ class Sucursal(models.Model):
         super().save(*args, **kwargs)
 
 
-# class Sucursal(models.Model):
-#       id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-#       nombre = models.CharField(max_length=100)
-#       provincia = models.CharField(max_length=100)
-#       departamento = models.CharField(max_length=100)
-#       localidad = models.CharField(max_length=100)
-#       direccion = models.TextField()
-#
-#       def __str__(self):
-#           return f"{self.nombre} - {self.localidad}, {self.provincia}"
-
-
-
 class Marca(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nombre = models.CharField(max_length=100, unique=True)
